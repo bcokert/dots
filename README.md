@@ -8,11 +8,5 @@ New machine, one command (clones to `~/projects/dots`, then installs):
 curl -fsSL https://raw.githubusercontent.com/bcokert/dots/main/bootstrap.sh | bash
 ```
 
-While the repo is private, with `gh` logged in:
-
-```sh
-gh api repos/bcokert/dots/contents/bootstrap.sh -H 'Accept: application/vnd.github.raw' | bash
-```
-
 Already cloned: `~/projects/dots/install.sh` (or `install.sh <module>...`).
 First run asks for the machine type (`types/*.env`) and saves it to `~/.config/dots/type`.

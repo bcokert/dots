@@ -4,7 +4,7 @@ Personal dev environment for any machine (macOS + Linux/Debian). Standalone: it 
 
 ## Conventions
 
-- **Public-safe.** This repo may be public. No secrets, tokens, hostnames of private services, work details,
+- **Public-safe.** This repo is public. No secrets, tokens, hostnames of private services, work details,
   or personal info beyond name/email. Anything sensitive stays out or goes in a gitignored `*.local` file.
 - `install.sh` is idempotent: re-running fixes what's missing and prints one ✓ line for what's fine.
   Use `lib.sh` helpers: `ok`, `fix`, `fail`, `pkg` (apt/brew), `link` (symlink from `files/`).
