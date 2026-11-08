@@ -1,0 +1,55 @@
+# Managed by dots (modules/git/files/config). Machine-specific settings (identity, credentials)
+# live in ~/.gitconfig, which git reads after this file.
+
+[alias]
+  # Short status
+  s = status -s
+  # Graph of the latest $1 (or 30) commits
+  l = "!f() { git log --pretty=oneline -n ${1:-30} --graph --abbrev-commit; }; f"
+  # Last $1 (or 5) commits with hash, date, author, refs
+  last = "!f() { git log --pretty=format:'%C(yellow)%h %Cred%ad %Cblue%an%Cgreen%d %Creset%s' --date=iso -${1:-5} --abbrev-commit; }; f"
+  # Diff of working tree vs HEAD, with stats
+  d = "!git diff-index --quiet HEAD -- || clear; git --no-pager diff --patch-with-stat"
+  # Delete branches merged into the current one (never the current branch, main, or master)
+  dm = "!git branch --merged | grep -vE '^[*+]|^ *(main|master)$' | xargs -r -n 1 git branch -d"
+
+[init]
+  defaultBranch = main
+
+[core]
+  # Flag spaces before tabs and trailing whitespace
+  whitespace = space-before-tab,-indent-with-non-tab,trailing-space
+
+[apply]
+  whitespace = fix
+
+[help]
+  # Suggest the command you probably meant, and ask before running it
+  autocorrect = prompt
+
+[diff]
+  renames = copies
+  algorithm = histogram
+
+[merge]
+  log = true
+  tool = nvimdiff
+  conflictstyle = zdiff3
+
+[pull]
+  rebase = true
+
+[push]
+  default = current
+  followTags = true
+  autoSetupRemote = true
+
+[fetch]
+  prune = true
+
+[rebase]
+  autosquash = true
+  autoStash = true
+
+[rerere]
+  enabled = true

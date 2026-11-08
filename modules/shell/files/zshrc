@@ -1,0 +1,46 @@
+# Managed by dots (modules/shell/files/zshrc). Machine-specific additions go in ~/.zshrc.local.
+typeset -U path
+path=("$HOME/.local/bin" $path)
+[[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# kubectl: use the per-user kubeconfig (k3s's bundled kubectl otherwise reads the root-only one)
+[[ -f ~/.kube/config ]] && export KUBECONFIG="${KUBECONFIG:-$HOME/.kube/config}"
+
+# History: big, shared live between terminals, no duplicates
+HISTFILE=~/.zsh_history
+HISTSIZE=100000
+SAVEHIST=100000
+setopt SHARE_HISTORY HIST_IGNORE_ALL_DUPS HIST_IGNORE_SPACE HIST_REDUCE_BLANKS EXTENDED_HISTORY
+setopt INTERACTIVE_COMMENTS
+
+# Line editing: emacs-style
+bindkey -e
+
+# Up/Down: search history for commands starting with what's typed (cursor to end)
+autoload -Uz up-line-or-beginning-search down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+for key in '^[[A' '^[OA' "${terminfo[kcuu1]}"; do [[ -n "$key" ]] && bindkey "$key" up-line-or-beginning-search; done
+for key in '^[[B' '^[OB' "${terminfo[kcud1]}"; do [[ -n "$key" ]] && bindkey "$key" down-line-or-beginning-search; done
+unset key
+
+# Completion: case-insensitive, arrow-key menu
+autoload -Uz compinit && compinit
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' menu select
+
+# Snippets from dots modules (aliases, editor, ...)
+for snippet in ~/.config/zsh/*.zsh(N); do source "$snippet"; done
+unset snippet
+
+command -v starship >/dev/null && eval "$(starship init zsh)"
+
+[[ -r ~/.zshrc.local ]] && source ~/.zshrc.local
+
+# Plugins (OS packages). Syntax highlighting must load last.
+for plugin in zsh-autosuggestions/zsh-autosuggestions.zsh zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
+  for dir in /usr/share /opt/homebrew/share /usr/local/share; do
+    [[ -r "$dir/$plugin" ]] && { source "$dir/$plugin"; break; }
+  done
+done
+unset plugin dir

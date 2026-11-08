@@ -1,0 +1,12 @@
+# Global gitignore (managed by dots)
+
+# OS clutter
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+Desktop.ini
+Thumbs.db
+
+# Python bytecode
+*.pyc

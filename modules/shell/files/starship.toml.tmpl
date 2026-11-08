@@ -1,0 +1,30 @@
+# Managed by dots. Generated from modules/shell/files/starship.toml.tmpl; edit that, then re-run install.sh.
+# No Nerd Font glyphs, so it renders on any terminal (including a bare console on a server).
+add_newline = false
+format = "$username$hostname$directory$git_branch$git_state$git_status$cmd_duration$status$character"
+
+# user@host: only shown over SSH (or as root), coloured by machine type
+[username]
+format = "[$user]($style)@"
+style_user = "bold __HOST_COLOR__"
+style_root = "bold red"
+
+[hostname]
+ssh_only = true
+format = "[$hostname]($style) "
+style = "bold __HOST_COLOR__"
+
+[directory]
+truncation_length = 4
+
+[git_branch]
+symbol = ""
+format = "on [$branch]($style) "
+
+[cmd_duration]
+min_time = 2000
+format = "took [$duration]($style) "
+
+[status]
+disabled = false
+format = "[✗ $status]($style) "
