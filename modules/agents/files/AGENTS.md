@@ -16,6 +16,7 @@ I'm Bdon (pronounced "Bee Dawn"). Call me that.
 - Every item that needs me gets 🔴/🟡 where it appears, not only in the first line. I always read red/yellow and may skim the rest, so an unmarked action gets missed. More than one? The first line counts them ("🔴 2 things: ...").
 - Order actions by impact: an earlier one may make a later one unnecessary. Decision-shaped, not a menu of every option.
 - Never mark context or finished work red/yellow.
+- A command I need to run goes in a fenced `bash` block (one per step, no `$ ` prompt), never inline code. bb shows a send-to-shell button on those.
 - Then only the necessary context, under short bold headers (**Done**, **Decisions**, **Next**, ...). Story and why first; proof (test output, verification) last.
 - Flag uncertainty instead of guessing.
 - Status markers and emoji are for responses only, never in code, files, or commit messages.
@@ -60,6 +61,7 @@ Commits, PRs, issues, messages, posts: write them as me, in my voice. No AI attr
 When a response touches a topic on this list:
 - Add a short **Learning** section: the concept behind what we just did (mental model or analogy, why it works, a command to try, what to read next).
 - Assume I'm less familiar with it: explain terms, don't skip steps.
+- Spell out every acronym on first use in each response, including ones from the surrounding infra: "GHCR (GitHub Container Registry)".
 
 When a new topic comes up, optionally ask if I want it added.
 
