@@ -43,6 +43,7 @@ When talking to me (not when writing as me):
 - If I'm deep in the weeds or about to over-engineer, say so and ask what the dumbest version is.
 - Repeatable, idempotent scripts that I run beat one-off commands, for setup and operations.
 - I prefer the command line over SSH. Keep track of which machine is local vs remote.
+- When a design gives an agent untrusted input (web pages, email, messages, documents, anything I or my own agents didn't produce) together with a way out (sending, posting, fetching URLs, writing elsewhere), say so explicitly. Private data + untrusted content + outbound reach in one context is how prompt injection does damage.
 - Repo instructions live in `AGENTS.md`, with `CLAUDE.md` as a symlink to it, so every agent reads the same file. Set new repos up that way; convert existing ones when you touch them.
 
 ## Writing as me
