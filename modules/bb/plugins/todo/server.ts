@@ -21,8 +21,6 @@ export const rpcContract = defineRpcContract({
 /** Realtime channel the app listens on: something changed in some list. */
 export const CHANGED = "todo-changed";
 
-const needsConfig = (msg: string) => Object.assign(new Error(msg), { name: "NeedsConfigurationError" });
-
 export default async function plugin(bb: BbPluginApi) {
   const settings = bb.settings.define({
     url: { type: "string", label: "Todo app URL", default: "https://todo.bdon.ca" },
@@ -31,12 +29,16 @@ export default async function plugin(bb: BbPluginApi) {
   });
   const { url, accessClientId, accessClientSecret } = await settings.get();
   const base = String(url).replace(/\/+$/, "");
-  if (!accessClientId || !accessClientSecret) {
-    throw needsConfig("Needs this machine's Cloudflare Access service token (accessClientId, accessClientSecret).");
-  }
-  const auth = { "CF-Access-Client-Id": String(accessClientId), "CF-Access-Client-Secret": String(accessClientSecret) };
+  // Always start, token or not: dots can only hand the token to a plugin whose settings it can see, and a plugin
+  // that refused to start registers none. Until it's set, calls explain what's missing.
+  const configured = Boolean(accessClientId && accessClientSecret);
+  if (!configured) bb.log.warn("no Cloudflare Access service token yet (accessClientId / accessClientSecret)");
+  const auth = { "CF-Access-Client-Id": String(accessClientId ?? ""), "CF-Access-Client-Secret": String(accessClientSecret ?? "") };
 
   async function call(method: string, route: string, body?: unknown): Promise<any> {
+    if (!configured) {
+      throw new Error("This bb server has no Cloudflare Access service token for the todo app yet: add BB_ACCESS_CLIENT_ID / BB_ACCESS_CLIENT_SECRET to ~/.config/dots/bb.env on its computer, then run ./install.sh bb in dots.");
+    }
     let res: Response;
     try {
       res = await fetch(base + route, {
@@ -69,6 +71,7 @@ export default async function plugin(bb: BbPluginApi) {
   // bb restarts the service when it fails (the stream drops, the app redeploys).
   bb.background.service("app-events", {
     start: async (signal) => {
+      if (!configured) return new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
       try {
         const res = await fetch(`${base}/api/events`, { headers: auth, redirect: "manual", signal });
         if (res.status !== 200 || !res.body) throw new Error(`events answered ${res.status}`);
