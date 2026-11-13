@@ -5,10 +5,12 @@
 # Skipped where no bb server answers. Uses `bb` when it's on PATH, otherwise bb's `npx --package bb-app bb`, so a
 # machine with only the bb app needs no extra install.
 #
-# ~/.config/dots/bb.env (per machine, never committed; for values too private for this public repo):
+# ~/.config/dots/bb.env (one per computer, never committed; for values too private for this public repo):
 #   BB_SESSION_LABEL=...   label after "Sessions" in the session list (default: DOTS_BB_LABEL from the type)
-#   BB_WORK_MACHINES=...   regex: machines whose name matches get session-agents' work icon (default: "work")
-#   BB_ACCESS_CLIENT_ID=...      this machine's Cloudflare Access service token, given to every plugin that talks
+#   BB_WORK_MACHINES=...   regex (any case) over bb machine names (bb's "machine" = where a session runs on this bb
+#                          server, e.g. a second Claude login on the same computer): matches get session-agents'
+#                          work icon (default: "work")
+#   BB_ACCESS_CLIENT_ID=...      this computer's Cloudflare Access service token, given to every plugin that talks
 #   BB_ACCESS_CLIENT_SECRET=...  to an app behind Access (plugins with accessClientId / accessClientSecret settings)
 #
 # Plugins here are clients of apps' public APIs (through the app's own auth), never of local files or ports, so the
@@ -26,6 +28,14 @@ installed="$(bbc plugin list --json 2>/dev/null | jq -r '.plugins[] | "\(.id) \(
 # 1. Plugins
 for dir in "$MODULE_DIR"/plugins/*/; do
   dir="${dir%/}"; id="$(basename "$dir")"
+  # Runtime dependencies (e.g. zod) get bundled, so they must be installed first; node_modules isn't committed.
+  # Dev ones (types, the SDK) aren't needed to build. Re-installed when the lockfile changes.
+  if jq -e '(.dependencies // {}) | length > 0' "$dir/package.json" >/dev/null \
+    && [[ ! -f "$dir/node_modules/.package-lock.json" || "$dir/package-lock.json" -nt "$dir/node_modules/.package-lock.json" ]]; then
+    command -v npm >/dev/null || fail "bb-plugin $id needs npm (Node) to install its dependencies"
+    (cd "$dir" && npm ci --omit=dev --no-audit --no-fund --loglevel=error >/dev/null) || fail "npm ci failed in $dir"
+    fix "installed bb-plugin $id's dependencies"
+  fi
   bbc plugin build "$dir" >/dev/null || fail "bb plugin build failed: $dir"
   if grep -qx "$id path:$dir" <<<"$installed"; then
     bbc plugin reload "$id" >/dev/null || fail "bb plugin reload $id failed (bb plugin logs $id)"
