@@ -5,7 +5,7 @@ import { definePluginApp, experimental_Icon as Icon, useRealtime, useRpc } from 
 import type { rpcContract } from "./server";
 
 type Child = { path: string; title: string; open: number; done: number; blue: number; doing: number };
-type Item = { id: string; text: string; done: boolean; blue: boolean; doing: string | null; child?: Child };
+type Item = { id: string; text: string; done: boolean; blue: boolean; doing: string | null; by: string | null; child?: Child };
 type List = { path: string; title: string; project: { status: string | null } | null; items: Item[]; implicit: Child[]; crumbs: { path: string; title: string }[] };
 type Blue = { path: string; list: string; id: string; text: string; doing: string | null };
 const CHANGED = "todo-changed";
@@ -111,12 +111,12 @@ function TodoList({ path, nav, prefs, setPrefs, depth = 0 }: { path: string; nav
       {items.map((it) => it.child
         ? <NsRow key={it.id} item={it} child={it.child} parent={path} nav={nav} prefs={prefs} setPrefs={setPrefs} depth={depth} drag={dragProps(it.id)} onBlue={() => act(rpc.call("item", { path, id: it.id, blue: !it.blue }))} />
         : (
-          <div key={it.id} className={`${rowBase} ${tint(it)} ${it.done ? "text-muted-foreground" : ""}`} title={it.doing && !it.done ? `In flight: ${it.doing}` : undefined}
+          <div key={it.id} className={`${rowBase} ${tint(it)} ${it.done ? "text-muted-foreground" : ""}`} title={it.doing && !it.done ? `In flight: ${it.doing}` : it.by ? `Added by ${it.by}` : undefined}
             onClick={() => act(rpc.call("item", { path, id: it.id, done: !it.done }))} {...dragProps(it.id)}>
             {manual ? <Icon name="GripVertical" className="size-3.5 flex-none text-muted-foreground/60" /> : null}
             <Bullet done={it.done} />
             <span className={`min-w-0 flex-1 break-words ${it.done ? "line-through decoration-muted-foreground/50" : ""}`}>{it.text}</span>
-            {it.doing && !it.done ? <span className="flex-none text-xs text-muted-foreground">{it.doing}</span> : null}
+            {(it.doing && !it.done) || it.by ? <span className="flex-none text-xs text-muted-foreground">{it.doing && !it.done ? it.doing : it.by}</span> : null}
             {confirming === it.id ? (
               <span className="flex flex-none gap-3 text-xs">
                 <button type="button" className="text-destructive" onClick={stop(() => { setConfirming(null); act(rpc.call("remove", { path, id: it.id })); })}>Delete</button>

@@ -17,6 +17,7 @@ I'm Bdon (pronounced "Bee Dawn"). Call me that.
 - Order actions by impact: an earlier one may make a later one unnecessary. Decision-shaped, not a menu of every option.
 - Never mark context or finished work red/yellow.
 - A command I need to run goes in a fenced `bash` block (one per step, no `$ ` prompt), never inline code. bb shows a send-to-shell button on those.
+- When I need to edit a file (config, grants, anything I own), also give an optional `bash` block that makes the exact edit, so I can send it instead of typing.
 - Then only the necessary context, under short bold headers (**Done**, **Decisions**, **Next**, ...). Story and why first; proof (test output, verification) last.
 - Flag uncertainty instead of guessing.
 - Status markers and emoji are for responses only, never in code, files, or commit messages.
