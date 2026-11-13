@@ -8,9 +8,11 @@
 # ~/.config/dots/bb.env (per machine, never committed; for values too private for this public repo):
 #   BB_SESSION_LABEL=...   label after "Sessions" in the session list (default: DOTS_BB_LABEL from the type)
 #   BB_WORK_MACHINES=...   regex: machines whose name matches get session-agents' work icon (default: "work")
-#   BB_EXTRA_PLUGINS=...   more plugins from git, space-separated "git:<repo url>#<subdirectory>" (private repos need
-#                          git credentials for them on this machine)
-#   BB_PLUGIN_CONFIG=...   settings for any plugin, space-separated "<plugin id>:<key>=<value>"
+#   BB_ACCESS_CLIENT_ID=...      this machine's Cloudflare Access service token, given to every plugin that talks
+#   BB_ACCESS_CLIENT_SECRET=...  to an app behind Access (plugins with accessClientId / accessClientSecret settings)
+#
+# Plugins here are clients of apps' public APIs (through the app's own auth), never of local files or ports, so the
+# same plugin works on every bb server.
 BB_ENV_FILE="$HOME/.config/dots/bb.env"
 [[ ! -f "$BB_ENV_FILE" ]] || { set -a; source "$BB_ENV_FILE"; set +a; }
 # A Mac with only the bb app has no bb CLI and maybe no Node: Node brings npx, which runs bb's CLI.
@@ -35,18 +37,12 @@ for dir in "$MODULE_DIR"/plugins/*/; do
   fi
 done
 
-# 1b. Extra plugins from git (installed once, then updated on every run).
-for spec in ${BB_EXTRA_PLUGINS:-}; do
-  src="${spec%%#*}"; sub=""; [[ "$spec" == *"#"* ]] && sub="${spec#*#}"
-  id="$(bbc plugin list --json | jq -r --arg s "$src" '.plugins[] | select((.source // "") | startswith($s)) | .id' | head -1)"
-  if [[ -n "$id" ]]; then
-    bbc plugin update "$id" >/dev/null 2>&1 && ok "bb-plugin $id (from $src, updated)" || warn "bb plugin update $id failed (bb plugin logs $id)"
-  else
-    fix "installing bb-plugin from $src${sub:+ ($sub)}"
-    bbc plugin install "$src" ${sub:+--subdirectory "$sub"} --yes >/dev/null || fail "bb plugin install $src failed (git credentials for it on this machine?)"
-    ok "bb-plugin from $src"
-  fi
-done
+# 1b. A plugin installed from a folder that no longer exists is gone for good: uninstall it.
+while read -r id src; do
+  [[ "$src" == path:* && ! -d "${src#path:}" ]] || continue
+  bbc plugin uninstall "$id" >/dev/null || fail "bb plugin uninstall $id failed"
+  fix "uninstalled bb-plugin $id (its folder ${src#path:} is gone)"
+done <<<"$installed"
 
 # 2. Plugin settings
 plugin_setting() { # PLUGIN KEY VALUE
@@ -60,10 +56,22 @@ plugin_setting session-agents label "${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}" &&
 plugin_setting session-agents workMachines "${BB_WORK_MACHINES:-work}" && changed=1
 (( changed )) && bbc plugin reload session-agents >/dev/null
 ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work machines /${BB_WORK_MACHINES:-work}/"
-for kv in ${BB_PLUGIN_CONFIG:-}; do
-  pid="${kv%%:*}"; rest="${kv#*:}"; key="${rest%%=*}"; val="${rest#*=}"
-  plugin_setting "$pid" "$key" "$val" && bbc plugin reload "$pid" >/dev/null
-  ok "$pid: $key = \"$val\""
+
+# 2b. App credentials: plugins that call an app behind Cloudflare Access get this machine's service token. The
+# secret is write-only in bb, so it's (re)written whenever the client ID changes.
+for id in $(bbc plugin list --json | jq -r '.plugins[] | select(.source | startswith("path:")) | .id'); do
+  cfg="$(bbc plugin config "$id" --json 2>/dev/null)" || continue
+  jq -e '.schema.accessClientId and .schema.accessClientSecret' <<<"$cfg" >/dev/null || continue
+  if [[ -z "${BB_ACCESS_CLIENT_ID:-}" || -z "${BB_ACCESS_CLIENT_SECRET:-}" ]]; then
+    warn "$id: no BB_ACCESS_CLIENT_ID / BB_ACCESS_CLIENT_SECRET in $BB_ENV_FILE, so it can't reach its app"
+  elif [[ "$(jq -r '.values.accessClientId // ""' <<<"$cfg")" != "$BB_ACCESS_CLIENT_ID" ]]; then
+    bbc plugin config "$id" set accessClientSecret "$BB_ACCESS_CLIENT_SECRET" >/dev/null || fail "$id: setting accessClientSecret failed"
+    bbc plugin config "$id" set accessClientId "$BB_ACCESS_CLIENT_ID" >/dev/null || fail "$id: setting accessClientId failed"
+    bbc plugin reload "$id" >/dev/null
+    fix "$id: this machine's Access service token"
+  else
+    ok "$id: Access service token"
+  fi
 done
 
 # 3. Stay in sync: a nightly automation (in bb's Personal project) pulls dots and re-runs this module.
