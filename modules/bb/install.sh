@@ -8,6 +8,9 @@
 # ~/.config/dots/bb.env (per machine, never committed; for values too private for this public repo):
 #   BB_SESSION_LABEL=...   label after "Sessions" in the session list (default: DOTS_BB_LABEL from the type)
 #   BB_WORK_MACHINES=...   regex: machines whose name matches get session-agents' work icon (default: "work")
+#   BB_EXTRA_PLUGINS=...   more plugins from git, space-separated "git:<repo url>#<subdirectory>" (private repos need
+#                          git credentials for them on this machine)
+#   BB_PLUGIN_CONFIG=...   settings for any plugin, space-separated "<plugin id>:<key>=<value>"
 BB_ENV_FILE="$HOME/.config/dots/bb.env"
 [[ ! -f "$BB_ENV_FILE" ]] || { set -a; source "$BB_ENV_FILE"; set +a; }
 # A Mac with only the bb app has no bb CLI and maybe no Node: Node brings npx, which runs bb's CLI.
@@ -32,6 +35,19 @@ for dir in "$MODULE_DIR"/plugins/*/; do
   fi
 done
 
+# 1b. Extra plugins from git (installed once, then updated on every run).
+for spec in ${BB_EXTRA_PLUGINS:-}; do
+  src="${spec%%#*}"; sub=""; [[ "$spec" == *"#"* ]] && sub="${spec#*#}"
+  id="$(bbc plugin list --json | jq -r --arg s "$src" '.plugins[] | select((.source // "") | startswith($s)) | .id' | head -1)"
+  if [[ -n "$id" ]]; then
+    bbc plugin update "$id" >/dev/null 2>&1 && ok "bb-plugin $id (from $src, updated)" || warn "bb plugin update $id failed (bb plugin logs $id)"
+  else
+    fix "installing bb-plugin from $src${sub:+ ($sub)}"
+    bbc plugin install "$src" ${sub:+--subdirectory "$sub"} --yes >/dev/null || fail "bb plugin install $src failed (git credentials for it on this machine?)"
+    ok "bb-plugin from $src"
+  fi
+done
+
 # 2. Plugin settings
 plugin_setting() { # PLUGIN KEY VALUE
   local now
@@ -44,6 +60,11 @@ plugin_setting session-agents label "${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}" &&
 plugin_setting session-agents workMachines "${BB_WORK_MACHINES:-work}" && changed=1
 (( changed )) && bbc plugin reload session-agents >/dev/null
 ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work machines /${BB_WORK_MACHINES:-work}/"
+for kv in ${BB_PLUGIN_CONFIG:-}; do
+  pid="${kv%%:*}"; rest="${kv#*:}"; key="${rest%%=*}"; val="${rest#*=}"
+  plugin_setting "$pid" "$key" "$val" && bbc plugin reload "$pid" >/dev/null
+  ok "$pid: $key = \"$val\""
+done
 
 # 3. Stay in sync: a nightly automation (in bb's Personal project) pulls dots and re-runs this module.
 name="dots: keep bb in sync"
