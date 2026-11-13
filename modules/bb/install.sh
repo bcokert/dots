@@ -10,6 +10,8 @@
 #   BB_WORK_MACHINES=...   regex: machines whose name matches get session-agents' work icon (default: "work")
 BB_ENV_FILE="$HOME/.config/dots/bb.env"
 [[ ! -f "$BB_ENV_FILE" ]] || { set -a; source "$BB_ENV_FILE"; set +a; }
+# A Mac with only the bb app has no bb CLI and maybe no Node: Node brings npx, which runs bb's CLI.
+if ! command -v bb >/dev/null && ! command -v npx >/dev/null && [[ "$DOTS_OS" == macos ]]; then pkg node; fi
 if command -v bb >/dev/null; then bbc() { bb "$@"; }
 elif command -v npx >/dev/null; then bbc() { npx -y --package bb-app bb "$@"; }
 else ok "no bb CLI and no npx: skipping"; return 0; fi
