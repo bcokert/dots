@@ -8,7 +8,7 @@
   },
   "bb": {
     "name": "Session agents",
-    "description": "Shows which agent each session runs on (a house for your own machine's login, a briefcase for a work machine) labels the session list, and keeps projects in most-recently-used order.",
+    "description": "Shows which agent each session runs on (a house for your own machine's login, a briefcase for a work machine) labels the session list, keeps projects in most-recently-used order, and shows server, agent and project in a session's top bar.",
     "branding": {
       "icon": "Users"
     },

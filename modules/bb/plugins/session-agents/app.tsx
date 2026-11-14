@@ -4,11 +4,22 @@
 //     thread's environment's machine, in the sidebar and in the phone's "Recent" list.
 //   - The session list header reads "Sessions · <label>" instead of "Threads"; "New thread" reads "New session".
 //   - Projects stay in most-recently-used order: the project with the newest session moves to the top.
+//   - A session's top bar starts with where it runs: server label, agent icon, project, then the title. Tap any of
+//     them for a card with the full names.
 // bb has no slot for these, so this decorates bb's own DOM (as its plugin docs recommend for that) from one
 // always-mounted component, and undoes everything when the plugin unloads. If bb's markup changes, rows simply
 // fall back to the provider's mark.
-import { useEffect, useRef } from "react";
-import { definePluginApp, experimental_useSidebarThreads, useSdk, useSettings } from "@get-bb/plugin-sdk/app";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import {
+  definePluginApp,
+  experimental_Icon as Icon,
+  experimental_useServers,
+  experimental_useSidebarThreads,
+  useBbContext,
+  useSdk,
+  useSettings,
+} from "@get-bb/plugin-sdk/app";
 
 const svg = (body: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${body}</svg>`)}")`;
@@ -17,11 +28,16 @@ const BRIEFCASE = svg("<rect x='2.5' y='7' width='19' height='13.5' rx='1.5'/><p
 
 const CSS = `
 [data-sa-agent] > * { display: none !important; }
-[data-sa-agent]::before { content: ""; width: 14px; height: 14px; flex: none; background-color: var(--sa-agent);
+[data-sa-agent]::before, [data-sa-header-agent]::before { content: ""; width: 14px; height: 14px; flex: none;
+  background-color: var(--sa-agent);
   -webkit-mask: var(--sa-icon) center / contain no-repeat; mask: var(--sa-icon) center / contain no-repeat; }
 [data-provider-icon-tint][data-sa-agent]::before { width: 16px; height: 16px; }
-[data-sa-agent="personal"] { --sa-agent: light-dark(#23845f, #4cc394); --sa-icon: ${HOUSE}; }
-[data-sa-agent="work"] { --sa-agent: light-dark(#6a4fe0, #a48dff); --sa-icon: ${BRIEFCASE}; }
+[data-sa-agent="personal"], [data-sa-header-agent="personal"] { --sa-agent: light-dark(#23845f, #4cc394); --sa-icon: ${HOUSE}; }
+[data-sa-agent="work"], [data-sa-header-agent="work"] { --sa-agent: light-dark(#6a4fe0, #a48dff); --sa-icon: ${BRIEFCASE}; }
+[data-sa-header-agent] { display: inline-flex; }
+/* Phones: drop the separators so the session title keeps more room. */
+@media (max-width: 480px) { [data-sa-header] .sa-sep { display: none; } [data-sa-header] .sa-project { max-width: 5.5rem; } }
+.sa-server { color: var(--sa-server); }
 .sa-label { margin-left: 6px; font-weight: 500; color: var(--sa-label); }
 .sa-label::before { content: "· "; color: var(--muted-foreground, currentColor); font-weight: 400; }
 `;
@@ -180,7 +196,126 @@ function ProjectOrder() {
   return null;
 }
 
+const PERSONAL_COLOR = "light-dark(#23845f, #4cc394)";
+const WORK_COLOR = "light-dark(#6a4fe0, #a48dff)";
+
+/**
+ * The session's top bar, before its title: "<server> · <agent icon> <folder> <project> /". bb has no slot there, so
+ * this keeps a node at the start of the title row in bb's header (like the code-block and icon decorations) and
+ * renders into it. No thread, no header, or bb's markup changed: nothing is added and the plain title stays.
+ */
+function SessionHeader() {
+  const context = useBbContext();
+  const { values } = useSettings();
+  const { threads, projects } = experimental_useSidebarThreads();
+  const servers = experimental_useServers();
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const [routeThread, setRouteThread] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const chips = useRef<HTMLButtonElement>(null);
+  // An app-wide overlay isn't inside a thread's page, so its context may have no thread: fall back to the URL.
+  const threadId = context.threadId ?? routeThread;
+
+  useLayoutEffect(() => {
+    const mount = document.createElement("span");
+    mount.className = "flex shrink-0 items-center";
+    mount.dataset.saHeader = "";
+    const attach = () => {
+      setRouteThread(location.pathname.match(/\/threads\/([^/?#]+)/)?.[1] ?? null);
+      const title = document.querySelector('[data-testid="app-page-header-content-row"] .bb-thread-title');
+      const row = title?.closest("p")?.parentElement; // bb's title box; we go right before it
+      if (!row?.parentElement) return setSlot(null);
+      if (mount.nextElementSibling !== row) row.before(mount);
+      setSlot(mount);
+    };
+    attach();
+    const observer = new MutationObserver(attach);
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      mount.remove();
+    };
+  }, []);
+
+  useEffect(() => setOpen(false), [threadId]);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !(e.target as Element)?.closest?.("[data-sa-card], [data-sa-header]")) setOpen(false);
+    };
+    document.addEventListener("pointerdown", close, true);
+    document.addEventListener("keydown", close, true);
+    return () => {
+      document.removeEventListener("pointerdown", close, true);
+      document.removeEventListener("keydown", close, true);
+    };
+  }, [open]);
+
+  const thread = threads.find((t) => t.id === threadId);
+  if (!slot || !thread) return null;
+  let work: RegExp;
+  try { work = new RegExp(String(values?.workMachines ?? "work"), "i"); } catch { work = /work/i; }
+  const label = String(values?.label ?? "") || "server";
+  const host = thread.host?.name ?? null;
+  const kind = host ? (work.test(host) ? "work" : "personal") : null;
+  const project = projects.find((p) => p.id === thread.projectId)?.name ?? "project";
+  const server = servers?.servers?.find((x) => x.active)?.name; // null outside bb Desktop and the mobile app
+  const rect = open ? chips.current?.getBoundingClientRect() : undefined;
+  const summary = `Server ${label}, agent ${host ?? "unknown"}, project ${project}`;
+
+  return (
+    <>
+      {createPortal(
+        <button
+          ref={chips}
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          title={summary}
+          aria-label={summary}
+          aria-expanded={open}
+          className="mr-1.5 flex cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-sm hover:bg-state-hover"
+          style={{ ["--sa-server" as string]: work.test(label) ? WORK_COLOR : PERSONAL_COLOR }}
+        >
+          <span className="sa-server font-medium">{label}</span>
+          <span className="sa-sep text-muted-foreground">·</span>
+          {kind ? <span data-sa-header-agent={kind} /> : null}
+          <Icon name="Folder" fallback="Folder" className="size-3.5 text-muted-foreground" aria-hidden />
+          <span className="sa-project max-w-[9rem] truncate">{project}</span>
+          <span className="sa-sep text-muted-foreground">/</span>
+        </button>,
+        slot,
+      )}
+      {open && rect
+        ? createPortal(
+            <div
+              data-sa-card=""
+              role="dialog"
+              aria-label="Where this session runs"
+              className="fixed z-50 min-w-64 max-w-[calc(100vw-16px)] rounded-md border border-border bg-popover p-3 text-xs text-popover-foreground shadow-md"
+              style={{ top: rect.bottom + 6, left: Math.max(8, Math.min(rect.left, window.innerWidth - 272)) }}
+            >
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                <dt className="text-muted-foreground">Server</dt>
+                <dd>{label}{server ? <span className="text-muted-foreground"> · {server}</span> : null}</dd>
+                <dt className="text-muted-foreground">Agent</dt>
+                <dd>{host ?? "unknown"}{kind ? <span className="text-muted-foreground"> · {kind === "work" ? "work login" : "personal login"}</span> : null}</dd>
+                <dt className="text-muted-foreground">Project</dt>
+                <dd>{project}</dd>
+                {thread.environment.path ? (<><dt className="text-muted-foreground">Folder</dt><dd className="break-all font-mono">{thread.environment.path}</dd></>) : null}
+                {thread.environment.branchName ? (<><dt className="text-muted-foreground">Branch</dt><dd className="font-mono">{thread.environment.branchName}</dd></>) : null}
+                <dt className="text-muted-foreground">Session</dt>
+                <dd>{thread.displayTitle}</dd>
+              </dl>
+            </div>,
+            document.body,
+          )
+        : null}
+    </>
+  );
+}
+
 export default definePluginApp((app) => {
   app.slots.experimental_appOverlay({ id: "agents", component: SessionAgents });
   app.slots.experimental_appOverlay({ id: "project-order", component: ProjectOrder });
+  app.slots.experimental_appOverlay({ id: "session-header", component: SessionHeader });
 });
