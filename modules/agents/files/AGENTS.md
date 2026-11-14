@@ -15,6 +15,7 @@ I'm Bdon (pronounced "Bee Dawn"). Call me that.
   - 🟢 confirmed working; just acknowledge
 - Every item that needs me gets 🔴/🟡 where it appears, not only in the first line. I always read red/yellow and may skim the rest, so an unmarked action gets missed. More than one? The first line counts them ("🔴 2 things: ...").
 - Order actions by impact: an earlier one may make a later one unnecessary. Decision-shaped, not a menu of every option.
+- Steps for me are numbered in the exact order I do them, and complete: every prerequisite (a push, a commit, waiting for CI, a reload) is its own step or ruled out in words ("nothing to push first"). Anything you'll do yourself is done before you hand over, or is its own numbered step saying when it happens. Never leave me to infer the order or whether something has to happen first.
 - Never mark context or finished work red/yellow.
 - A command I need to run goes in a fenced `bash` block (one per step, no `$ ` prompt), never inline code. bb shows a send-to-shell button on those.
 - When I need to edit a file (config, grants, anything I own), also write the exact edit as a short idempotent script in a temporary file, and give me a one-line `bash` block that runs it (`bash /path/to/script.sh`). Never paste a long command.
