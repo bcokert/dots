@@ -42,7 +42,11 @@ function SessionAgents() {
     style.textContent = CSS + `.sa-label { --sa-label: ${labelColor}; }`;
     document.head.append(style);
 
-    const threadEnv = new Map<string, string | null>(); // thread id -> environment id (null: none)
+    // thread id -> environment id, cached only once its host is known. A new session's environment lands a moment
+    // after the thread, so a miss is retried (missedAt) instead of cached, or the row keeps the default icon.
+    const threadEnv = new Map<string, string>();
+    const missedAt = new Map<string, number>(); // thread id -> when it last had no environment/host yet
+    const RETRY_MS = 3_000;
     const envHost = new Map<string, string>(); // environment id -> host id
     let hostNames = new Map<string, string>();
     const pending = new Set<string>();
@@ -66,9 +70,10 @@ function SessionAgents() {
           const e = (await sdk.environments.get({ environmentId: env })) as { hostId?: string };
           if (e.hostId) envHost.set(env, e.hostId);
         }
-        threadEnv.set(threadId, env);
+        if (env && envHost.has(env)) { threadEnv.set(threadId, env); missedAt.delete(threadId); }
+        else { missedAt.set(threadId, Date.now()); window.setTimeout(schedule, RETRY_MS); }
       } catch {
-        threadEnv.set(threadId, null);
+        missedAt.set(threadId, Date.now()); window.setTimeout(schedule, RETRY_MS);
       } finally {
         pending.delete(threadId);
         schedule();
@@ -105,7 +110,10 @@ function SessionAgents() {
       }
       for (const [id, icon] of rows) {
         if (!icon) continue;
-        if (!threadEnv.has(id)) { void resolve(id); continue; }
+        if (!threadEnv.has(id)) {
+          if (Date.now() - (missedAt.get(id) ?? 0) >= RETRY_MS) void resolve(id);
+          continue;
+        }
         const agent = agentOf(id);
         if (!agent) continue;
         if (icon.dataset.saAgent !== agent.kind) {
