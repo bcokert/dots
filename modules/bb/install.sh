@@ -80,6 +80,17 @@ plugin_setting session-agents workMachines "${BB_WORK_MACHINES:-work}" && change
 (( changed )) && bbc plugin reload session-agents >/dev/null
 ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work machines /${BB_WORK_MACHINES:-work}/"
 
+# 2a. Session list layout (bb's thread-list): grouped by project, each collapsible, newest session first within a
+# project; empty projects hidden. session-agents keeps the projects themselves in most-recently-used order.
+list_pref() { # KEY JSON
+  [[ "$(bbc thread-list prefs get "$1" --json 2>/dev/null | jq -c '.value')" == "$(jq -c . <<<"$2")" ]] && return 0
+  bbc thread-list prefs set "$1" "$2" >/dev/null && fix "session list: $1 = $2"
+}
+list_pref organizationMode '"project"'
+list_pref chronologicalSort '"updated"'
+list_pref showEmptyProjects false
+ok "session list: by project, newest first, empty projects hidden"
+
 # 2b. App credentials: plugins that call an app behind Cloudflare Access get this machine's service token. The
 # secret is write-only in bb, so it's (re)written whenever the client ID changes.
 for id in $(bbc plugin list --json | jq -r '.plugins[] | select(.source | startswith("path:")) | .id'); do

@@ -3,11 +3,12 @@
 //     own login, a briefcase for a work machine (name matching the workMachines setting). It's looked up from the
 //     thread's environment's machine, in the sidebar and in the phone's "Recent" list.
 //   - The session list header reads "Sessions · <label>" instead of "Threads"; "New thread" reads "New session".
+//   - Projects stay in most-recently-used order: the project with the newest session moves to the top.
 // bb has no slot for these, so this decorates bb's own DOM (as its plugin docs recommend for that) from one
 // always-mounted component, and undoes everything when the plugin unloads. If bb's markup changes, rows simply
 // fall back to the provider's mark.
-import { useEffect } from "react";
-import { definePluginApp, useSdk, useSettings } from "@get-bb/plugin-sdk/app";
+import { useEffect, useRef } from "react";
+import { definePluginApp, experimental_useSidebarThreads, useSdk, useSettings } from "@get-bb/plugin-sdk/app";
 
 const svg = (body: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${body}</svg>`)}")`;
@@ -149,6 +150,37 @@ function SessionAgents() {
   return null;
 }
 
+/**
+ * bb lists projects in a stored order (drag to reorder) and has no "most recent first". This keeps the project
+ * whose session was updated last at the top: when it isn't first, it moves there. Moving only the top one is
+ * enough, since every project goes to the top as soon as it gets used, which gives most-recently-used order.
+ * Every open window runs this, but they all agree on the target, so the worst case is a repeated no-op move.
+ */
+function ProjectOrder() {
+  const sdk = useSdk();
+  const { status, threads, projects } = experimental_useSidebarThreads();
+  const moving = useRef<string | null>(null);
+  useEffect(() => {
+    if (status !== "ready") return;
+    const listed = projects.filter((p) => !p.isPersonal);
+    const latest = new Map<string, number>();
+    for (const t of threads) {
+      if (t.isArchived) continue;
+      latest.set(t.projectId, Math.max(latest.get(t.projectId) ?? 0, t.updatedAt));
+    }
+    let top: string | null = null;
+    for (const p of listed) if ((latest.get(p.id) ?? 0) > (latest.get(top ?? "") ?? 0)) top = p.id;
+    if (!top || listed[0]?.id === top || moving.current === top) return;
+    moving.current = top;
+    sdk.projects
+      .reorder({ projectId: top, previousProjectId: null, nextProjectId: listed[0].id })
+      .catch(() => undefined)
+      .finally(() => window.setTimeout(() => { if (moving.current === top) moving.current = null; }, 5_000));
+  }, [sdk, status, threads, projects]);
+  return null;
+}
+
 export default definePluginApp((app) => {
   app.slots.experimental_appOverlay({ id: "agents", component: SessionAgents });
+  app.slots.experimental_appOverlay({ id: "project-order", component: ProjectOrder });
 });
