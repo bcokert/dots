@@ -11,7 +11,7 @@
     "name": "Send to shell",
     "description": "A button on shell code blocks in agent replies that types the command into the thread's terminal, ready to review. Never presses Enter.",
     "branding": {
-      "icon": "SquareTerminal"
+      "icon": "Terminal"
     },
     "app": "./app.tsx",
     "server": "./server.ts"

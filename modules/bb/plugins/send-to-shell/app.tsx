@@ -1,6 +1,7 @@
 // Send to shell: a button on shell code blocks in agent replies. It types the block into this thread's
 // terminal (opening one if needed) and never presses Enter: you read it, then run it or not.
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   definePluginApp,
   experimental_Icon as Icon,
@@ -88,28 +89,65 @@ function ShellFence({ code, language, status, message, Original }: ExperimentalC
       : state.kind === "error"
         ? `Couldn't send: ${state.message}`
         : "Send to shell (doesn't run it)";
+  const button = (
+    <button
+      type="button"
+      onClick={send}
+      disabled={state.kind === "sending"}
+      title={label}
+      aria-label={label}
+      className="inline-flex size-5 cursor-pointer items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+    >
+      <Icon
+        name={state.kind === "sent" ? "Check" : state.kind === "error" ? "TriangleAlert" : "Terminal"}
+        fallback="Terminal"
+        className={state.kind === "error" ? "size-3.5 text-destructive" : "size-3.5"}
+        aria-hidden
+      />
+    </button>
+  );
+  const slot = useToolbarSlot(status === "closed");
   return (
-    <div className="relative">
+    <div ref={slot.ref}>
       <Original />
-      {status === "closed" ? (
-        <button
-          type="button"
-          onClick={send}
-          disabled={state.kind === "sending"}
-          title={label}
-          aria-label={label}
-          className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-sm bg-muted px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
-        >
-          <Icon
-            name={state.kind === "sent" ? "Check" : state.kind === "error" ? "TriangleAlert" : "SquareTerminal"}
-            className={state.kind === "error" ? "size-3.5 text-destructive" : "size-3.5"}
-            aria-hidden
-          />
-          <span>{state.kind === "sent" ? "sent" : "shell"}</span>
-        </button>
-      ) : null}
+      {status !== "closed" ? null : slot.node ? (
+        createPortal(button, slot.node)
+      ) : (
+        <div className="-mt-1 mb-2 flex justify-end">{button}</div>
+      )}
     </div>
   );
+}
+
+/**
+ * A spot for our button in BB's own code-block toolbar, first in line before Wrap lines and Copy code. BB has no
+ * slot for toolbar actions, so this finds the toolbar (the parent of the Copy code button) and keeps a node at its
+ * start, re-adding it if BB re-renders the block. No toolbar found (BB changed its markup): node stays null and
+ * the button renders in a row under the block instead, never over the code.
+ */
+function useToolbarSlot(enabled: boolean) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [node, setNode] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    const root = ref.current;
+    if (!enabled || !root) return;
+    const mount = document.createElement("span");
+    mount.className = "contents";
+    const attach = () => {
+      const toolbar = root.querySelector('button[aria-label="Copy code"]')?.parentElement;
+      if (!toolbar) return setNode(null);
+      if (mount.parentElement !== toolbar) toolbar.prepend(mount);
+      setNode(mount);
+    };
+    attach();
+    const observer = new MutationObserver(attach);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => {
+      observer.disconnect();
+      mount.remove();
+    };
+  }, [enabled]);
+  return { ref, node };
 }
 
 export default definePluginApp((app) => {
