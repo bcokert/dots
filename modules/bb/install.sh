@@ -12,6 +12,7 @@
 #                          work icon (default: "work")
 #   BB_ACCESS_CLIENT_ID=...      this computer's Cloudflare Access service token, given to every plugin that talks
 #   BB_ACCESS_CLIENT_SECRET=...  to an app behind Access (plugins with accessClientId / accessClientSecret settings)
+#   BB_PLUGINS_OFF=...     built-in plugins to keep disabled, space-separated (default: environment-git-worktree)
 #
 # Plugins here are clients of apps' public APIs (through the app's own auth), never of local files or ports, so the
 # same plugin works on every bb server.
@@ -53,6 +54,18 @@ while read -r id src; do
   bbc plugin uninstall "$id" >/dev/null || fail "bb plugin uninstall $id failed"
   fix "uninstalled bb-plugin $id (its folder ${src#path:} is gone)"
 done <<<"$installed"
+
+# 1c. Built-in plugins we don't use stay off. Worktrees: a new session opens the project's own folder (bb's
+# "Project checkout"), so the picker is just project + machine; agents handle branches themselves.
+for id in ${BB_PLUGINS_OFF-environment-git-worktree}; do
+  enabled="$(bbc plugin list --json | jq -r --arg id "$id" '.plugins[] | select(.id == $id) | .enabled' | head -1)"
+  [[ -n "$enabled" ]] || { ok "bb-plugin $id: not installed"; continue; }
+  if [[ "$enabled" == true ]]; then
+    bbc plugin disable "$id" >/dev/null || fail "bb plugin disable $id failed"
+    fix "disabled bb-plugin $id"
+  fi
+  ok "bb-plugin $id: off"
+done
 
 # 2. Plugin settings
 plugin_setting() { # PLUGIN KEY VALUE
