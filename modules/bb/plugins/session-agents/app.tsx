@@ -112,6 +112,18 @@ function SessionAgents() {
       for (const el of document.querySelectorAll<HTMLElement>("span, div")) {
         if (el.childElementCount === 0 && el.textContent === "New thread") el.textContent = "New session";
       }
+      // The domain label also goes where every layout shows it: the sidebar's "New session" button (the "Threads"
+      // header is gone when the list is organised by project) and the phone home screen's "Recent" heading.
+      const tag = (el: HTMLElement) => {
+        if (el.dataset.saLabeled === label && (!label || el.querySelector(":scope > .sa-label"))) return;
+        el.dataset.saLabeled = label;
+        el.querySelector(":scope > .sa-label")?.remove();
+        if (label) el.append(Object.assign(document.createElement("span"), { className: "sa-label", textContent: label }));
+      };
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sidebar-header-slot] span")) {
+        if (el.dataset.saLabeled !== undefined || (el.childElementCount === 0 && el.textContent === "New session")) tag(el);
+      }
+      for (const el of document.querySelectorAll<HTMLElement>("[data-root-compose-mobile-recents] h2")) tag(el);
     };
     const paint = () => {
       frame = 0;
@@ -155,6 +167,10 @@ function SessionAgents() {
       clearInterval(hostTimer);
       style.remove();
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-agent]")) delete el.dataset.saAgent;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-labeled]")) {
+        delete el.dataset.saLabeled;
+        el.querySelector(":scope > .sa-label")?.remove();
+      }
       for (const el of document.querySelectorAll<HTMLElement>("span[data-sa-sessions]")) {
         delete el.dataset.saSessions;
         el.title = "Threads";
@@ -259,9 +275,10 @@ function SessionHeader() {
   const host = thread.host?.name ?? null;
   const kind = host ? (work.test(host) ? "work" : "personal") : null;
   const project = projects.find((p) => p.id === thread.projectId)?.name ?? "project";
-  const server = servers?.servers?.find((x) => x.active)?.name; // null outside bb Desktop and the mobile app
+  const active = servers?.servers?.find((x) => x.active); // null outside bb Desktop and the mobile app
+  const server = active ? { name: active.name, host: active.origin.replace(/^https?:\/\//, "") } : null;
   const rect = open ? chips.current?.getBoundingClientRect() : undefined;
-  const summary = `Server ${label}, agent ${host ?? "unknown"}, project ${project}`;
+  const summary = `Domain ${label}, agent ${host ?? "unknown"}, project ${project}`;
 
   return (
     <>
@@ -295,8 +312,10 @@ function SessionHeader() {
               style={{ top: rect.bottom + 6, left: Math.max(8, Math.min(rect.left, window.innerWidth - 272)) }}
             >
               <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5">
+                <dt className="text-muted-foreground">Domain</dt>
+                <dd>{label}</dd>
                 <dt className="text-muted-foreground">Server</dt>
-                <dd>{label}{server ? <span className="text-muted-foreground"> · {server}</span> : null}</dd>
+                <dd>{server ? <>{server.name} <span className="text-muted-foreground">· {server.host}</span></> : location.host}</dd>
                 <dt className="text-muted-foreground">Agent</dt>
                 <dd>{host ?? "unknown"}{kind ? <span className="text-muted-foreground"> · {kind === "work" ? "work login" : "personal login"}</span> : null}</dd>
                 <dt className="text-muted-foreground">Project</dt>
