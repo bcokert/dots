@@ -1,7 +1,9 @@
 // session-agents: makes bb say which agent each session runs on, and labels the session list.
 //   - Each session's provider icon (e.g. the Claude mark) becomes its agent's: a house for a machine with your
-//     own login, a briefcase for a work machine (name matching the workMachines setting). It's looked up from the
-//     thread's environment's machine, in the sidebar and in the phone's "Recent" list.
+//     own login, a briefcase for a work machine (name matching the workMachines setting). Host agents (name
+//     matching hostMachines, e.g. "Claude Personal Host": they run directly on a computer and can see all of it)
+//     get a solid terminal badge in the same colour instead, so they stand out from the pods. It's looked up from
+//     the thread's environment's machine, in the sidebar and in the phone's "Recent" list.
 //   - The session list header reads "Sessions · <label>" instead of "Threads"; "New thread" reads "New session".
 //   - Projects stay in most-recently-used order: the project with the newest session moves to the top.
 //   - A session's top bar starts with where it runs: server label, agent icon, project, then the title. Tap any of
@@ -25,6 +27,9 @@ const svg = (body: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${body}</svg>`)}")`;
 const HOUSE = svg("<path d='M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z'/>");
 const BRIEFCASE = svg("<rect x='2.5' y='7' width='19' height='13.5' rx='1.5'/><path d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/><path d='M2.5 13h19'/>");
+// Solid, unlike the outline house and briefcase, so a Host agent reads differently at 14px: a filled window with a
+// ">_" prompt cut out of it.
+const TERMINAL = svg("<defs><mask id='p'><rect width='24' height='24' fill='white'/><path d='M7 9.5l3 2.5-3 2.5M12.5 15H17' stroke='black'/></mask></defs><rect x='1.5' y='3.5' width='21' height='17' rx='3.5' fill='black' stroke='none' mask='url(#p)'/>");
 
 const CSS = `
 [data-sa-agent] > * { display: none !important; }
@@ -34,6 +39,8 @@ const CSS = `
 [data-provider-icon-tint][data-sa-agent]::before { width: 16px; height: 16px; }
 [data-sa-agent="personal"], [data-sa-header-agent="personal"] { --sa-agent: light-dark(#23845f, #4cc394); --sa-icon: ${HOUSE}; }
 [data-sa-agent="work"], [data-sa-header-agent="work"] { --sa-agent: light-dark(#6a4fe0, #a48dff); --sa-icon: ${BRIEFCASE}; }
+[data-sa-agent="personal-host"], [data-sa-header-agent="personal-host"] { --sa-agent: light-dark(#23845f, #4cc394); --sa-icon: ${TERMINAL}; }
+[data-sa-agent="work-host"], [data-sa-header-agent="work-host"] { --sa-agent: light-dark(#6a4fe0, #a48dff); --sa-icon: ${TERMINAL}; }
 [data-sa-header-agent] { display: inline-flex; }
 /* Phones: drop the separators so the session title keeps more room. */
 @media (max-width: 480px) { [data-sa-header] .sa-sep { display: none; } [data-sa-header] .sa-project { max-width: 5.5rem; } }
@@ -42,17 +49,27 @@ const CSS = `
 .sa-label::before { content: "· "; color: var(--muted-foreground, currentColor); font-weight: 400; }
 `;
 
-type Agent = { kind: "personal" | "work"; name: string };
+type Kind = "personal" | "work" | "personal-host" | "work-host";
+type Agent = { kind: Kind; name: string };
+
+const pattern = (value: unknown, fallback: string) => {
+  try { return new RegExp(String(value || fallback), "i"); } catch { return new RegExp(fallback, "i"); }
+};
+const HOST_DEFAULT = "\\bhost$";
+/** A machine name -> its agent kind: whose login (work or personal), and whether it's a Host agent. */
+const kindOf = (name: string, work: RegExp, host: RegExp): Kind =>
+  `${work.test(name) ? "work" : "personal"}${host.test(name) ? "-host" : ""}` as Kind;
 
 function SessionAgents() {
   const sdk = useSdk();
   const { values } = useSettings();
   const label = String(values?.label ?? "");
   const workPattern = String(values?.workMachines ?? "work");
+  const hostPattern = String(values?.hostMachines || HOST_DEFAULT);
 
   useEffect(() => {
-    let work: RegExp;
-    try { work = new RegExp(workPattern, "i"); } catch { work = /work/i; }
+    const work = pattern(workPattern, "work");
+    const hostRe = pattern(hostPattern, HOST_DEFAULT);
     const labelColor = work.test(label) ? "light-dark(#6a4fe0, #a48dff)" : "light-dark(#23845f, #4cc394)";
     const style = document.createElement("style");
     style.dataset.sessionAgents = "";
@@ -75,7 +92,7 @@ function SessionAgents() {
       const host = env ? envHost.get(env) : undefined;
       if (!host || !hostNames.has(host)) return null;
       const name = hostNames.get(host)!;
-      return { kind: work.test(name) ? "work" : "personal", name };
+      return { kind: kindOf(name, work, hostRe), name };
     };
     const resolve = async (threadId: string) => {
       if (pending.has(threadId)) return;
@@ -177,7 +194,7 @@ function SessionAgents() {
         el.textContent = "Threads";
       }
     };
-  }, [sdk, label, workPattern]);
+  }, [sdk, label, workPattern, hostPattern]);
 
   return null;
 }
@@ -269,11 +286,10 @@ function SessionHeader() {
 
   const thread = threads.find((t) => t.id === threadId);
   if (!slot || !thread) return null;
-  let work: RegExp;
-  try { work = new RegExp(String(values?.workMachines ?? "work"), "i"); } catch { work = /work/i; }
+  const work = pattern(values?.workMachines, "work");
   const label = String(values?.label ?? "") || "server";
   const host = thread.host?.name ?? null;
-  const kind = host ? (work.test(host) ? "work" : "personal") : null;
+  const kind = host ? kindOf(host, work, pattern(values?.hostMachines, HOST_DEFAULT)) : null;
   const project = projects.find((p) => p.id === thread.projectId)?.name ?? "project";
   const active = servers?.servers?.find((x) => x.active); // null outside bb Desktop and the mobile app
   const server = active ? { name: active.name, host: active.origin.replace(/^https?:\/\//, "") } : null;
@@ -317,11 +333,11 @@ function SessionHeader() {
                 <dt className="text-muted-foreground">Server</dt>
                 <dd>{server ? <>{server.name} <span className="text-muted-foreground">· {server.host}</span></> : location.host}</dd>
                 <dt className="text-muted-foreground">Agent</dt>
-                <dd>{host ?? "unknown"}{kind ? <span className="text-muted-foreground"> · {kind === "work" ? "work login" : "personal login"}</span> : null}</dd>
+                <dd>{host ?? "unknown"}{kind ? <span className="text-muted-foreground"> · {kind.startsWith("work") ? "work login" : "personal login"}{kind.endsWith("-host") ? ", on the host" : ", in a pod"}</span> : null}</dd>
                 <dt className="text-muted-foreground">Project</dt>
                 <dd>{project}</dd>
-                {thread.environment.path ? (<><dt className="text-muted-foreground">Folder</dt><dd className="break-all font-mono">{thread.environment.path}</dd></>) : null}
-                {thread.environment.branchName ? (<><dt className="text-muted-foreground">Branch</dt><dd className="font-mono">{thread.environment.branchName}</dd></>) : null}
+                {thread.environment?.path ? (<><dt className="text-muted-foreground">Folder</dt><dd className="break-all font-mono">{thread.environment?.path}</dd></>) : null}
+                {thread.environment?.branchName ? (<><dt className="text-muted-foreground">Branch</dt><dd className="font-mono">{thread.environment?.branchName}</dd></>) : null}
                 <dt className="text-muted-foreground">Session</dt>
                 <dd>{thread.displayTitle}</dd>
               </dl>

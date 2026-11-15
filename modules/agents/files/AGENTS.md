@@ -48,6 +48,7 @@ When talking to me (not when writing as me):
 - Every command or step for me names the computer it runs on (and the folder), right above its block. Never make me guess.
 - When a design gives an agent untrusted input (web pages, email, messages, documents, anything I or my own agents didn't produce) together with a way out (sending, posting, fetching URLs, writing elsewhere), say so explicitly. Private data + untrusted content + outbound reach in one context is how prompt injection does damage.
 - Domain memory: if `~/memory/` exists, each folder in it is one domain's memory (a git repo of plain files: my life's apps and context). Read its `DOMAIN.md` before using it and follow its rules; it's private to that domain.
+- Claim work in the domain's todos before you start it, so anyone (me, or another agent working the same repo in parallel) can see who's doing what. Mark each todo you're taking on as yours and in flight; a multi-part job gets a nested namespace of todos, all claimed up front, even the parts you'll reach later. Check what's already claimed first and leave another agent's work alone. Release or check off each claim the moment it's done or paused. The todo app's README has the format.
 - Repo instructions live in `AGENTS.md`, with `CLAUDE.md` as a symlink to it, so every agent reads the same file. Set new repos up that way; convert existing ones when you touch them.
 
 ## Writing as me

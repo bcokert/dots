@@ -10,6 +10,8 @@
 #   BB_WORK_MACHINES=...   regex (any case) over bb machine names (bb's "machine" = where a session runs on this bb
 #                          server, e.g. a second Claude login on the same computer): matches get session-agents'
 #                          work icon (default: "work")
+#   BB_HOST_MACHINES=...   regex (any case) over bb machine names: Host agents (run directly on a computer, e.g.
+#                          "Claude Personal Host"), which get session-agents' solid terminal icon (default: "\bhost$")
 #   BB_ACCESS_CLIENT_ID=...      this computer's Cloudflare Access service token, given to every plugin that talks
 #   BB_ACCESS_CLIENT_SECRET=...  to an app behind Access (plugins with accessClientId / accessClientSecret settings)
 #   BB_PLUGINS_OFF=...     built-in plugins to keep disabled, space-separated (default: environment-git-worktree)
@@ -77,8 +79,9 @@ plugin_setting() { # PLUGIN KEY VALUE
 changed=0
 plugin_setting session-agents label "${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}" && changed=1
 plugin_setting session-agents workMachines "${BB_WORK_MACHINES:-work}" && changed=1
+plugin_setting session-agents hostMachines "${BB_HOST_MACHINES:-\bhost\$}" && changed=1
 (( changed )) && bbc plugin reload session-agents >/dev/null
-ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work machines /${BB_WORK_MACHINES:-work}/"
+ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work machines /${BB_WORK_MACHINES:-work}/, host machines /${BB_HOST_MACHINES:-\bhost\$}/"
 
 # 2a. Session list layout (bb's thread-list): grouped by project, each collapsible, newest session first within a
 # project; empty projects hidden. session-agents keeps the projects themselves in most-recently-used order.
