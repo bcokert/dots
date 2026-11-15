@@ -5,13 +5,16 @@
 # Skipped where no bb server answers. Uses `bb` when it's on PATH, otherwise bb's `npx --package bb-app bb`, so a
 # machine with only the bb app needs no extra install.
 #
-# ~/.config/dots/bb.env (one per computer, never committed; for values too private for this public repo):
+# ~/.config/dots/bb.env (one per computer, never committed; for values too private for this public repo; set one
+# with modules/bb/set-env.sh KEY VALUE "why"):
 #   BB_SESSION_LABEL=...   label after "Sessions" in the session list (default: DOTS_BB_LABEL from the type)
 #   BB_WORK_MACHINES=...   regex (any case) over bb machine names (bb's "machine" = where a session runs on this bb
 #                          server, e.g. a second Claude login on the same computer): matches get session-agents'
 #                          work icon (default: "work")
 #   BB_HOST_MACHINES=...   regex (any case) over bb machine names: Host agents (run directly on a computer, e.g.
 #                          "Claude Personal Host"), which get session-agents' solid terminal icon (default: "\bhost$")
+#   BB_MACHINE_NAME=...    name of this bb server's own machine, the agent that runs directly on this computer, e.g.
+#                          "Claude <account> Host" (default: leave bb's name alone)
 #   BB_ACCESS_CLIENT_ID=...      this computer's Cloudflare Access service token, given to every plugin that talks
 #   BB_ACCESS_CLIENT_SECRET=...  to an app behind Access (plugins with accessClientId / accessClientSecret settings)
 #   BB_PLUGINS_OFF=...     built-in plugins to keep disabled, space-separated (default: environment-git-worktree)
@@ -82,6 +85,18 @@ plugin_setting session-agents workMachines "${BB_WORK_MACHINES:-work}" && change
 plugin_setting session-agents hostMachines "${BB_HOST_MACHINES:-\bhost\$}" && changed=1
 (( changed )) && bbc plugin reload session-agents >/dev/null
 ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work machines /${BB_WORK_MACHINES:-work}/, host machines /${BB_HOST_MACHINES:-\bhost\$}/"
+
+# 2b. This bb server's own machine (the one with no machine provider) gets BB_MACHINE_NAME, if set.
+if [[ -n "${BB_MACHINE_NAME:-}" ]]; then
+  self="$(bbc machine list --json | jq -c '[.[] | select(.machineProviderId == null)][0] // empty')"
+  if [[ -z "$self" ]]; then ok "no local bb machine found: not renaming it"
+  elif [[ "$(jq -r .name <<<"$self")" != "$BB_MACHINE_NAME" ]]; then
+    bbc machine rename "$(jq -r .id <<<"$self")" "$BB_MACHINE_NAME" >/dev/null \
+      || fail "bb machine rename failed (run this from a plain terminal, not one inside a bb thread on another machine)"
+    fix "this bb server's machine is now \"$BB_MACHINE_NAME\""
+  fi
+  ok "machine name \"$BB_MACHINE_NAME\""
+fi
 
 # 2a. Session list layout (bb's thread-list): grouped by project, each collapsible, newest session first within a
 # project; empty projects hidden. session-agents keeps the projects themselves in most-recently-used order.
