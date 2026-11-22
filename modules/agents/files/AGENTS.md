@@ -76,7 +76,6 @@ When a new topic comes up, optionally ask if I want it added.
 - podman
 - Kubernetes for personal use
 - kubectl
-- Cloudflare
 - Agent sessions (Claude etc.) and multi-machine agentic setups
 - Tailscale (and bb-connect as an alternative)
 - bb ide, its related setups, and multi-server setups
