@@ -26,6 +26,7 @@ import {
   useSdk,
   useSettings,
 } from "@get-bb/plugin-sdk/app";
+import { jobsOf, type Job } from "./jobs";
 
 const svg = (body: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${body}</svg>`)}")`;
@@ -41,6 +42,9 @@ const BRANCH = svg("<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='
 
 // A small cog: a subagent is machinery working for its lead, not an agent of its own.
 const COG = svg("<circle cx='12' cy='12' r='3.2' stroke-width='2.6'/><path d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1' stroke-width='2.8'/>");
+
+// Two linked rings: marks a session as one phase of a job.
+const LINK = svg("<path d='M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7'/><path d='M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'/>");
 
 const CSS = `
 [data-sa-agent] > * { display: none !important; }
@@ -87,6 +91,14 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 .sa-sub::before { content: ""; width: 11px; height: 11px; flex: none; background-color: var(--sa-agent, currentColor);
   -webkit-mask: ${COG} center / contain no-repeat; mask: ${COG} center / contain no-repeat; }
 .sa-sub-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+/* Jobs: phases of one job share a faint tint, a link mark with the phase number, and light up together on hover. */
+[data-sa-job] { background-color: color-mix(in srgb, var(--sa-job) 9%, transparent) !important; border-radius: 6px; transition: background-color .12s; }
+[data-sa-job][data-sa-hot] { background-color: color-mix(in srgb, var(--sa-job) 22%, transparent) !important; }
+.sa-phase { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; flex: none; font-size: 10px; line-height: 1; font-weight: 600; color: var(--sa-job); }
+.sa-phase::before { content: ""; width: 10px; height: 10px; background-color: currentColor;
+  -webkit-mask: ${LINK} center / contain no-repeat; mask: ${LINK} center / contain no-repeat; }
+.sa-job-link { background: none; border: 0; padding: 0; cursor: pointer; color: inherit; text-align: left; font: inherit; }
+.sa-job-link:hover { text-decoration: underline; }
 .sa-sub-model { flex: none; opacity: .6; font-size: 10px; }
 `;
 
@@ -157,8 +169,10 @@ function SessionAgents() {
   const roles = useRef(new Map<string, Thr>());
   const projectNames = useRef(new Map<string, string>());
   const bump = useRef<() => void>(() => undefined);
+  const jobs = useRef(new Map<string, Job>());
   useEffect(() => {
     roles.current = new Map(threads.map((t) => [t.id, t]));
+    jobs.current = jobsOf(threads);
     projectNames.current = new Map(projects.map((p) => [p.id, p.name]));
     bump.current();
   }, [threads, projects]);
@@ -334,6 +348,36 @@ function SessionAgents() {
       for (const el of document.querySelectorAll<HTMLElement>(".sa-pips, [data-sa-block]")) if (!seen.has(el)) el.remove();
       void now;
     };
+    // Jobs: tint + phase mark per row. `jobs` is kept fresh by the effect below.
+    const paintJobs = () => {
+      const seen = new Set<HTMLElement>();
+      const mark = (id: string, row: HTMLElement | null | undefined, titleEl: HTMLElement | null | undefined) => {
+        const job = jobs.current.get(id);
+        if (!row || !job || !titleEl) return;
+        const n = job.phases.find((p) => p.id === id)!.n;
+        row.dataset.saJob = job.key;
+        row.style.setProperty("--sa-job", job.color);
+        let m = titleEl.parentElement!.querySelector<HTMLElement>(":scope > .sa-phase");
+        if (!m) { m = document.createElement("span"); m.className = "sa-phase"; titleEl.after(m); }
+        if (m.textContent !== String(n)) m.textContent = String(n);
+        m.title = `${job.name}: phase ${n} of ${job.phases.length} sessions`;
+        seen.add(m);
+      };
+      for (const a of document.querySelectorAll<HTMLElement>("a[data-sidebar-thread-id]")) {
+        const row = a.closest<HTMLElement>("[data-sidebar-rename-row]") ?? a;
+        mark(a.dataset.sidebarThreadId!, row, row.querySelector<HTMLElement>(".bb-thread-title"));
+      }
+      for (const li of document.querySelectorAll<HTMLElement>("[data-root-compose-mobile-recents] li")) {
+        const id = li.querySelector("a[href*='/threads/']")?.getAttribute("href")?.match(/\/threads\/([^/?#]+)/)?.[1];
+        if (id) mark(id, li, li.querySelector<HTMLElement>(".bb-thread-title"));
+      }
+      for (const el of document.querySelectorAll<HTMLElement>(".sa-phase")) if (!seen.has(el)) el.remove();
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-job]")) {
+        const id = el.querySelector<HTMLElement>("[data-sidebar-thread-id]")?.dataset.sidebarThreadId ?? el.dataset.sidebarThreadId
+          ?? el.querySelector("a[href*='/threads/']")?.getAttribute("href")?.match(/\/threads\/([^/?#]+)/)?.[1];
+        if (!id || !jobs.current.has(id)) { delete el.dataset.saJob; delete el.dataset.saHot; el.style.removeProperty("--sa-job"); }
+      }
+    };
     const paint = () => {
       frame = 0;
       if (stopped) return;
@@ -370,12 +414,22 @@ function SessionAgents() {
         }
       }
       paintSubs();
+      paintJobs();
       relabel();
       observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     };
     const schedule = () => { if (!frame && !stopped) frame = requestAnimationFrame(paint); };
     bump.current = schedule;
     const observer = new MutationObserver(schedule);
+    const hover = (e: Event) => {
+      const row = (e.target as Element | null)?.closest?.<HTMLElement>("[data-sa-job]");
+      const key = e.type === "pointerover" ? row?.dataset.saJob : undefined;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-job]")) {
+        if (key && el.dataset.saJob === key) el.dataset.saHot = ""; else delete el.dataset.saHot;
+      }
+    };
+    document.addEventListener("pointerover", hover);
+    document.addEventListener("pointerleave", hover, true);
     void loadHosts();
     const hostTimer = window.setInterval(loadHosts, 60_000); // renamed or added machines
     const subTimer = window.setInterval(pollSubs, SUB_POLL_MS);
@@ -388,7 +442,10 @@ function SessionAgents() {
       cancelAnimationFrame(frame);
       clearInterval(hostTimer);
       clearInterval(subTimer);
-      for (const el of document.querySelectorAll(".sa-pips, [data-sa-block]")) el.remove();
+      document.removeEventListener("pointerover", hover);
+      document.removeEventListener("pointerleave", hover, true);
+      for (const el of document.querySelectorAll(".sa-pips, [data-sa-block], .sa-phase")) el.remove();
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-job]")) { delete el.dataset.saJob; delete el.dataset.saHot; el.style.removeProperty("--sa-job"); }
       style.remove();
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-agent]")) { delete el.dataset.saAgent; delete el.dataset.saRole; }
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-labeled]")) {
@@ -502,6 +559,12 @@ function SessionHeader() {
   const server = active ? { name: active.name, host: active.origin.replace(/^https?:\/\//, "") } : null;
   const rect = open ? chips.current?.getBoundingClientRect() : undefined;
   const info = roleOf(thread, new Map(threads.map((t) => [t.id, t])), new Map(projects.map((p) => [p.id, p.name])), host, pattern(values?.claireMachines, "claire"));
+  const job = jobsOf(threads).get(thread.id);
+  const openPhase = (id: string, href?: string) => {
+    setOpen(false);
+    const a = document.querySelector<HTMLElement>(`a[data-sidebar-thread-id="${id}"]`);
+    if (a) a.click(); else if (href) location.assign(href);
+  };
   const summary = `Domain ${label}, agent ${host ?? "unknown"}, project ${project}, ${info.tip}`;
 
   return (
@@ -553,6 +616,20 @@ function SessionHeader() {
                 <dd>{info.role === "worker" ? <>its lead: {info.by}</> : info.by}</dd>
                 <dt className="text-muted-foreground">Session</dt>
                 <dd>{thread.displayTitle}</dd>
+                {job ? (
+                  <>
+                    <dt className="text-muted-foreground">Job</dt>
+                    <dd style={{ ["--sa-job" as string]: job.color }}>
+                      <span style={{ color: job.color }} className="font-medium">{job.name}</span>
+                      {job.phases.map((p) => (
+                        <div key={p.id} className="flex gap-1.5">
+                          <span className="w-4 text-right text-muted-foreground">{p.n}</span>
+                          {p.id === thread.id ? <span className="text-muted-foreground">{p.title} (this)</span> : <button type="button" className="sa-job-link" onClick={() => openPhase(p.id, p.href)}>{p.title}</button>}
+                        </div>
+                      ))}
+                    </dd>
+                  </>
+                ) : null}
               </dl>
             </div>,
             document.body,
