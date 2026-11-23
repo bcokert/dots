@@ -10,7 +10,7 @@
 //     them for a card with the full names.
 //   - Subagents (Claude Code Agent-tool delegations) of a running session show briefly: a pip beside its title per
 //     subagent of the latest turn (pulsing while running, green done, red failed; fading out after the turn ends),
-//     and a small dim indented row per running one with a helper-robot icon, its description and model. They are
+//     and a small dim indented row per running one with a cog icon, its description and model. They are
 //     read from the thread's timeline every ~4 s, only for threads that are running; not clickable as threads.
 // bb has no slot for these, so this decorates bb's own DOM (as its plugin docs recommend for that) from one
 // always-mounted component, and undoes everything when the plugin unloads. If bb's markup changes, rows simply
@@ -39,8 +39,8 @@ const TERMINAL = svg("<defs><mask id='p'><rect width='24' height='24' fill='whit
 const CROWN = svg("<path d='M3 18h18M4 15 2.5 6.5l5.5 4L12 4l4 6.5 5.5-4L20 15z' fill='black'/>");
 const BRANCH = svg("<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='m15 12 4 4-4 4' stroke-width='3'/>");
 
-// A little helper robot: head with an antenna and two eyes.
-const ROBOT = svg("<rect x='4' y='8' width='16' height='12' rx='3'/><path d='M12 8V4M9 14v1M15 14v1' stroke-width='2.6'/><circle cx='12' cy='3.5' r='1' fill='black'/>");
+// A small cog: a subagent is machinery working for its lead, not an agent of its own.
+const COG = svg("<circle cx='12' cy='12' r='3.2' stroke-width='2.6'/><path d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1' stroke-width='2.8'/>");
 
 const CSS = `
 [data-sa-agent] > * { display: none !important; }
@@ -67,7 +67,7 @@ const CSS = `
 .sa-server { color: var(--sa-server); }
 .sa-label { margin-left: 6px; font-weight: 500; color: var(--sa-label); }
 .sa-label::before { content: "· "; color: var(--muted-foreground, currentColor); font-weight: 400; }
-/* Subagents: pips beside the title, and dim indented rows under it while they run. The robot icon (not a dot: dots
+/* Subagents: pips beside the title, and dim indented rows under it while they run. The cog icon (not a dot: dots
    read as online/offline) is in the lead agent's colour; the whole block says "working for the lead". */
 .sa-subs[data-k="personal"], .sa-pips[data-k="personal"] { --sa-agent: light-dark(#23845f, #4cc394); }
 .sa-subs[data-k="work"], .sa-pips[data-k="work"] { --sa-agent: light-dark(#6a4fe0, #a48dff); }
@@ -85,7 +85,7 @@ const CSS = `
 li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 .sa-sub { display: flex; align-items: center; gap: 5px; min-width: 0; height: 18px; font-size: 11px; line-height: 1; color: var(--muted-foreground, gray); opacity: .85; cursor: default; }
 .sa-sub::before { content: ""; width: 11px; height: 11px; flex: none; background-color: var(--sa-agent, currentColor);
-  -webkit-mask: ${ROBOT} center / contain no-repeat; mask: ${ROBOT} center / contain no-repeat; }
+  -webkit-mask: ${COG} center / contain no-repeat; mask: ${COG} center / contain no-repeat; }
 .sa-sub-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .sa-sub-model { flex: none; opacity: .6; font-size: 10px; }
 `;
@@ -355,8 +355,13 @@ function SessionAgents() {
         const agent = agentOf(id);
         if (!agent) continue;
         const thr = roles.current.get(id);
-        const r = thr ? roleOf(thr, roles.current, projectNames.current, agent.name, claireRe) : null;
-        const tip = r ? `${agent.name} · ${r.tip}` : agent.name;
+        const r0 = thr ? roleOf(thr, roles.current, projectNames.current, agent.name, claireRe) : null;
+        // Nearly every session is a lead, so the crown only marks one that's running a team right now: child
+        // sessions, or subagents still on screen. The tooltip keeps the role either way.
+        const team = r0?.role === "lead" && ((subs.get(id)?.list.length ?? 0) > 0
+          || [...roles.current.values()].some((t) => t.parentThreadId === id));
+        const r = r0 && (r0.role === "worker" || team) ? r0 : null;
+        const tip = r0 ? `${agent.name} · ${r0.tip}` : agent.name;
         if (icon.dataset.saAgent !== agent.kind || icon.dataset.saRole !== (r?.role ?? "") || icon.title !== tip) {
           icon.dataset.saAgent = agent.kind;
           if (r) icon.dataset.saRole = r.role; else delete icon.dataset.saRole;
@@ -517,7 +522,7 @@ function SessionHeader() {
           {kind ? <span data-sa-header-agent={kind} /> : null}
           <Icon name="Folder" fallback="Folder" className="size-3.5 text-muted-foreground" aria-hidden />
           <span className="sa-project max-w-[9rem] truncate">{project}</span>
-          <span className="sa-role" data-r={info.role} aria-hidden />
+          {info.role === "worker" || threads.some((t) => t.parentThreadId === thread.id) ? <span className="sa-role" data-r={info.role} aria-hidden /> : null}
           <span className="sa-sep text-muted-foreground">/</span>
         </button>,
         slot,
