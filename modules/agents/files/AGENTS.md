@@ -56,7 +56,8 @@ When talking to me (not when writing as me):
 ## Leads
 
 A session I start (or one an agent of mine starts on my behalf) is a **lead**: it owns the job, plans it, delegates
-it and checks it, and builds only what's small.
+it and checks it, and builds only what's small. The `lead` skill (where the runtime has skills) has the how: the
+proposal card, the brief template, models, budgets and handoffs.
 
 1. Understand the ask first. Unclear: interview me, decision-shaped. Complex: grill me until the edges are sharp.
 2. A small job: just do it, and say so in a line. Otherwise break it down **up front**: the progress bar's steps are

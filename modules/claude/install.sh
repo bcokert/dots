@@ -1,4 +1,4 @@
-# Claude Code: install it, merge the settings dots owns, status line.
+# Claude Code: install it, merge the settings dots owns, status line, skills.
 # Global instructions come from the agents module.
 pkg jq curl
 
@@ -9,6 +9,12 @@ fi
 ok "claude installed"
 
 link statusline.sh "$HOME/.claude/statusline.sh"
+
+# Skills dots owns (files/skills/<name>/SKILL.md), each linked into ~/.claude/skills.
+for dir in "$MODULE_DIR"/files/skills/*/; do
+  name="$(basename "$dir")"
+  link "skills/$name" "$HOME/.claude/skills/$name"
+done
 
 # Merge, don't link: Claude Code writes its own changes to settings.json, which must stay local.
 settings="$HOME/.claude/settings.json"
