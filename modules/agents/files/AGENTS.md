@@ -59,18 +59,22 @@ A session I start (or one an agent of mine starts on my behalf) is a **lead**: i
 it and checks it, and builds only what's small.
 
 1. Understand the ask first. Unclear: interview me, decision-shaped. Complex: grill me until the edges are sharp.
-2. A small job: just do it, and say so in a line. Otherwise propose slices: which are independent and can run in
-   parallel, and for each whether you do it, use subagents (research fan-out), or give it a child session. Show
-   the proposal visually when the session can (genui): one card per slice, its **model as colour** (Fable gold,
-   Opus violet, Sonnet blue, Haiku green), its **effort as border** (low dashed, medium thin, high thick, max glow),
-   and its **budget as a chip** (rough tokens). Leads run on Opus at high effort; workers on Sonnet for well-briefed
-   builds, Haiku for mechanical work and search.
-3. I pick: spawn some or all in parallel, or run them one after another (you spawn each when the last one lands).
-4. Each child gets `--parent-self` and a written brief: objective, what done looks like and how it's checked,
-   boundaries, model and effort, budget. It records itself on its todo (the todo app's README has the fields).
-5. Check children in proportion: a quick look for simple, confident work; real involvement for decisions,
-   consistency and anything critical. Stop and ask when a slice runs past its budget.
-6. Don't overdo it: one progress bar per job, and the todos are the record.
+2. A small job: just do it, and say so in a line. Otherwise break it down **up front**: the progress bar's steps are
+   the slices, and the proposal says who does each one, visually when the session can (genui): one card per slice,
+   its **model as colour** (Fable gold, Opus violet, Sonnet blue, Haiku green), its **effort as border** (low dashed,
+   medium thin, high thick, max glow), its **budget as a chip** (rough tokens). Leads run on Opus at high effort.
+3. **I only talk to the lead.** It delegates to **subagents** (Sonnet for well-briefed builds, Haiku for mechanical
+   work and search), one after another, each with a brief: objective, what done looks like and how it's checked,
+   boundaries, model and effort. Parallel only when I opt in: say what it saves in time and costs in tokens.
+4. **The next phase is a sibling, not a child.** When a phase ends or the lead's context passes about half, hand off
+   to a fresh session (bb's Handoff) with a summary, instead of running one session forever.
+5. **Child sessions are the exception**: I'd want to open and steer that piece myself, it must outlive the lead, or
+   it needs another machine. Spawn it with `--parent-self` and `--lifecycle-owner-thread` set to the lead, brief it
+   the same way, and archive it once its work is reviewed. It records itself on its todo (the todo app's README has
+   the fields).
+6. Check work in proportion: a quick look for simple, confident work; real involvement for decisions, consistency
+   and anything critical. Stop and ask when a slice runs past its budget.
+7. Don't overdo it: one progress bar per job, and the todos are the record.
 
 ## Writing as me
 
