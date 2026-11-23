@@ -24,6 +24,7 @@ export const CHANGED = "todo-changed";
 export default async function plugin(bb: BbPluginApi) {
   const settings = bb.settings.define({
     url: { type: "string", label: "Todo app URL", default: "https://todo.bdon.ca" },
+    lifeUrl: { type: "string", label: "Life dashboard URL (todo links in chat become chips)", default: "https://life.bdon.ca" },
     accessClientId: { type: "string", label: "Cloudflare Access service token: client ID", default: "" },
     accessClientSecret: { type: "string", label: "Cloudflare Access service token: client secret", secret: true },
   });

@@ -1,11 +1,12 @@
 // todo bb-plugin frontend: the todo lists as a side-panel tab, and the blues floating over bb.
 // Same look and behaviour as the web UI (web/index.html in this repo), in bb's own theme. Keep the two in step.
-import React, { useCallback, useEffect, useState, type DragEvent, type MouseEvent } from "react";
-import { definePluginApp, experimental_Icon as Icon, useRealtime, useRpc } from "@get-bb/plugin-sdk/app";
+import React, { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent } from "react";
+import { createPortal } from "react-dom";
+import { definePluginApp, experimental_Icon as Icon, useBbNavigate, useRealtime, useRpc, useSettings } from "@get-bb/plugin-sdk/app";
 import type { rpcContract } from "./server";
 
 type Child = { path: string; title: string; open: number; done: number; blue: number; doing: number };
-type Item = { id: string; text: string; done: boolean; blue: boolean; doing: string | null; by: string | null; child?: Child };
+type Item = { fields?: Record<string, string>; id: string; text: string; done: boolean; blue: boolean; doing: string | null; by: string | null; child?: Child };
 type List = { path: string; title: string; project: { status: string | null } | null; items: Item[]; implicit: Child[]; crumbs: { path: string; title: string }[] };
 type Blue = { path: string; list: string; id: string; text: string; doing: string | null };
 const CHANGED = "todo-changed";
@@ -251,6 +252,120 @@ function FloatingBlues() {
   );
 }
 
+
+// --- Todo chips in chat. An agent writes a todo as a plain link to the life dashboard, [Name](<dashboard>/#path/^id),
+// which stays a readable link wherever this plugin isn't running. Here we find those links in the DOM, hide each and
+// put a chip after it: name, state, and a click that expands the details inline. Messages are React-owned, so we only
+// add a sibling node and set one attribute on the link, never edit its content.
+const HIDE = "a[data-todo-link]{display:none!important}";
+function parseHash(href: string, life: string): { path: string; id: string | null } | null {
+  if (!href.startsWith(life + "/#")) return null;
+  const segs = decodeURIComponent(href.slice(life.length + 2)).split("/").filter(Boolean);
+  const last = segs.at(-1);
+  if (last?.startsWith("^")) return { path: segs.slice(0, -1).join("/"), id: last.slice(1) };
+  return { path: segs.join("/"), id: null };
+}
+type Host = { anchor: HTMLAnchorElement; slot: HTMLElement; path: string; id: string | null; label: string };
+
+function TodoChips() {
+  const settings = useSettings();
+  const life = String(settings.values?.lifeUrl ?? "").replace(/\/+$/, "");
+  const [hosts, setHosts] = useState<Host[]>([]);
+  const known = useRef(new Map<HTMLAnchorElement, Host>());
+  useEffect(() => {
+    if (!life) return;
+    const style = document.createElement("style");
+    style.textContent = HIDE;
+    document.head.appendChild(style);
+    let queued = false;
+    const scan = () => {
+      queued = false;
+      let changed = false;
+      for (const [a, h] of known.current) if (!a.isConnected) { h.slot.remove(); known.current.delete(a); changed = true; }
+      for (const a of document.querySelectorAll<HTMLAnchorElement>("a[href]")) {
+        if (known.current.has(a) || a.closest("[data-todo-slot]")) continue;
+        const ref = parseHash(a.getAttribute("href") ?? "", life);
+        if (!ref) continue;
+        const slot = document.createElement("span");
+        slot.dataset.todoSlot = "";
+        a.dataset.todoLink = "";
+        a.after(slot);
+        known.current.set(a, { anchor: a, slot, ...ref, label: a.textContent ?? "" });
+        changed = true;
+      }
+      if (changed) setHosts([...known.current.values()]);
+    };
+    const schedule = () => { if (!queued) { queued = true; requestAnimationFrame(scan); } };
+    const observer = new MutationObserver(schedule);
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    scan();
+    return () => {
+      observer.disconnect();
+      style.remove();
+      for (const [a, h] of known.current) { h.slot.remove(); delete a.dataset.todoLink; }
+      known.current.clear();
+    };
+  }, [life]);
+  return <>{hosts.map((h) => createPortal(<Chip host={h} life={life} />, h.slot))}</>;
+}
+
+function Chip({ host, life }: { host: Host; life: string }) {
+  const rpc = useTodo();
+  const nav = useBbNavigate();
+  const [list, setList] = useState<List | null>(null);
+  const [failed, setFailed] = useState(false);
+  const [open, setOpen] = useState(false);
+  const refetch = useCallback(() => {
+    rpc.call("list", { path: host.path }).then((l) => { setList(l as List); setFailed(false); }, () => setFailed(true));
+  }, [rpc, host.path]);
+  useEffect(refetch, [refetch]);
+  useRealtime(CHANGED, refetch);
+
+  const item = host.id ? list?.items.find((i) => i.id === host.id) ?? null : null;
+  const isList = !host.id;
+  const name = item?.text ?? (isList ? list?.title : null) ?? host.label;
+  const tone = item ? (item.done ? "done" : item.blue ? "blue" : item.doing ? "doing" : "open") : "open";
+  const bg = tone === "blue" ? "bg-sky-500/20" : tone === "doing" ? "bg-emerald-500/20" : "bg-muted/70";
+  const f = item?.fields ?? {};
+  const crumb = list && !isList ? list.title : "";
+  const openItems = isList ? (list?.items.filter((i) => !i.done) ?? []) : [];
+  const meta: [string, string][] = item ? ([
+    ["Role", f.role], ["In flight", item.doing && !item.done ? item.doing : ""], ["Added by", item.by ?? ""],
+    ["Done", item.done ? f.done ?? "yes" : ""], 
+  ] as [string, string][]).filter(([, v]) => v) : [];
+  const extra = Object.entries(f).filter(([k]) => !["role", "thread", "done", "doing", "by", "blue", "list"].includes(k));
+  const link = "text-sky-600 hover:underline dark:text-sky-400";
+
+  return (
+    <span className={`max-w-full align-baseline ${open ? "block" : "inline-block"}`}>
+      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(!open); }}
+        title={failed ? "Couldn't load this todo; click for the link" : undefined}
+        className={`inline-flex max-w-full cursor-pointer items-center gap-1.5 rounded px-1.5 py-px align-baseline text-[0.95em] ${bg} ${tone === "done" ? "text-muted-foreground" : ""}`}>
+        {isList ? <Icon name="Folder" className="size-3.5 flex-none" />
+          : <span className={`grid size-3.5 flex-none place-items-center rounded-[3px] border-[1.5px] ${tone === "done" ? "border-foreground bg-foreground text-background" : "border-muted-foreground/60"}`}>{tone === "done" ? <Icon name="Check" className="size-2.5" /> : null}</span>}
+        <span className={`min-w-0 break-words text-left ${isList ? "font-medium" : ""} ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{name}</span>
+        {isList ? (list ? <span className="flex-none text-xs text-muted-foreground">{openItems.length} open</span> : null)
+          : crumb ? <span className="min-w-0 max-w-[9rem] flex-none truncate text-xs text-muted-foreground">in {crumb}</span> : null}
+        <Icon name={open ? "ChevronUp" : "ChevronDown"} className="size-3 flex-none text-muted-foreground" />
+      </button>
+      {open ? (
+        <span className="my-1 block space-y-1 border-l-2 border-muted-foreground/30 py-0.5 pl-3 text-sm">
+          {failed || (!list) ? <span className="block text-muted-foreground">{failed ? "Couldn't read this todo." : "Loading..."}</span> : null}
+          {list && !isList && !item ? <span className="block text-muted-foreground">Not found in this list any more (it may have been reworded or moved).</span> : null}
+          {meta.map(([k, v]) => <span key={k} className="flex gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="min-w-0 break-words">{v}</span></span>)}
+          {extra.map(([k, v]) => <span key={k} className="flex gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="min-w-0 break-words">{v}</span></span>)}
+          {isList ? (openItems.length ? openItems.slice(0, 8).map((i) => <span key={i.id} className="block break-words">{i.doing ? "● " : "○ "}{i.text}</span>) : <span className="block text-muted-foreground">Nothing open.</span>) : null}
+          {isList && openItems.length > 8 ? <span className="block text-muted-foreground">+ {openItems.length - 8} more</span> : null}
+          <span className="flex flex-wrap gap-x-4 gap-y-1 pt-0.5">
+            {f.thread ? <a href="#" className={link} onClick={(e) => { e.preventDefault(); nav.toThread(f.thread); }}>Open session</a> : null}
+            <a href={host.anchor.getAttribute("href") ?? life} target="_blank" rel="noreferrer" className={link}>Open in life dashboard</a>
+          </span>
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
 export default definePluginApp((app) => {
   app.slots.experimental_tab({
     id: "todo", title: "Todo", icon: "ListTodo", tooltip: "Your todo lists",
@@ -258,4 +373,5 @@ export default definePluginApp((app) => {
     component: TodoTab,
   });
   app.slots.experimental_appOverlay({ id: "blues", component: FloatingBlues });
+  app.slots.experimental_appOverlay({ id: "chips", component: TodoChips });
 });

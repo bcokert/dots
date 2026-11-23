@@ -31,6 +31,10 @@ const BRIEFCASE = svg("<rect x='2.5' y='7' width='19' height='13.5' rx='1.5'/><p
 // ">_" prompt cut out of it.
 const TERMINAL = svg("<defs><mask id='p'><rect width='24' height='24' fill='white'/><path d='M7 9.5l3 2.5-3 2.5M12.5 15H17' stroke='black'/></mask></defs><rect x='1.5' y='3.5' width='21' height='17' rx='3.5' fill='black' stroke='none' mask='url(#p)'/>");
 
+// Role marks (see .sa-role below): drawn bolder so they read at 10px.
+const CROWN = svg("<path d='M3 18h18M4 15 2.5 6.5l5.5 4L12 4l4 6.5 5.5-4L20 15z' fill='black'/>");
+const BRANCH = svg("<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='m15 12 4 4-4 4' stroke-width='3'/>");
+
 const CSS = `
 [data-sa-agent] > * { display: none !important; }
 [data-sa-agent]::before, [data-sa-header-agent]::before { content: ""; width: 14px; height: 14px; flex: none;
@@ -42,6 +46,15 @@ const CSS = `
 [data-sa-agent="personal-host"], [data-sa-header-agent="personal-host"] { --sa-agent: light-dark(#23845f, #4cc394); --sa-icon: ${TERMINAL}; }
 [data-sa-agent="work-host"], [data-sa-header-agent="work-host"] { --sa-agent: light-dark(#6a4fe0, #a48dff); --sa-icon: ${TERMINAL}; }
 [data-sa-header-agent] { display: inline-flex; }
+/* Role mark, bottom-right of the agent icon: a crown is a lead (owns the job), a branch arrow is a worker (a lead's
+   child session). Icons, not dots: filled/hollow dots read as online/offline. */
+[data-sa-agent] { position: relative; }
+[data-sa-role]::after, .sa-role { content: ""; width: 10px; height: 10px; flex: none; background-color: var(--sa-agent, currentColor);
+  -webkit-mask: var(--sa-role-icon) center / contain no-repeat; mask: var(--sa-role-icon) center / contain no-repeat; }
+[data-sa-role]::after { position: absolute; right: -5px; bottom: -4px; }
+[data-sa-role="lead"], .sa-role[data-r="lead"] { --sa-role-icon: ${CROWN}; }
+[data-sa-role="worker"], .sa-role[data-r="worker"] { --sa-role-icon: ${BRANCH}; }
+.sa-role { display: inline-block; width: 12px; height: 12px; background-color: var(--sa-server, currentColor); }
 /* Phones: drop the separators so the session title keeps more room. */
 @media (max-width: 480px) { [data-sa-header] .sa-sep { display: none; } [data-sa-header] .sa-project { max-width: 5.5rem; } }
 .sa-server { color: var(--sa-server); }
@@ -60,9 +73,34 @@ const HOST_DEFAULT = "\\bhost$";
 const kindOf = (name: string, work: RegExp, host: RegExp): Kind =>
   `${work.test(name) ? "work" : "personal"}${host.test(name) ? "-host" : ""}` as Kind;
 
+/** Role and who started a session. A thread with a parent is a worker (its lead is the parent, maybe in another
+ * project); one without is a lead, started by Claire when its machine matches claireMachines, else by Bdon. */
+type Role = { role: "lead" | "worker"; by: string; tip: string };
+type Thr = { id: string; projectId: string; displayTitle: string; parentThreadId: string | null };
+const roleOf = (t: Thr, all: Map<string, Thr>, projects: Map<string, string>, machine: string | null, claire: RegExp): Role => {
+  if (t.parentThreadId) {
+    const p = all.get(t.parentThreadId);
+    const where = p && p.projectId !== t.projectId ? ` (${projects.get(p.projectId) ?? "another project"})` : "";
+    const by = p ? `${p.displayTitle}${where}` : "its lead";
+    return { role: "worker", by, tip: `Worker · started by its lead: ${by}` };
+  }
+  const by = machine && claire.test(machine) ? "Claire" : "Bdon";
+  return { role: "lead", by, tip: `Lead · started by ${by}` };
+};
+
 function SessionAgents() {
   const sdk = useSdk();
   const { values } = useSettings();
+  const { threads, projects } = experimental_useSidebarThreads();
+  const roles = useRef(new Map<string, Thr>());
+  const projectNames = useRef(new Map<string, string>());
+  const bump = useRef<() => void>(() => undefined);
+  useEffect(() => {
+    roles.current = new Map(threads.map((t) => [t.id, t]));
+    projectNames.current = new Map(projects.map((p) => [p.id, p.name]));
+    bump.current();
+  }, [threads, projects]);
+  const clairePattern = String(values?.claireMachines || "claire");
   const label = String(values?.label ?? "");
   const workPattern = String(values?.workMachines ?? "work");
   const hostPattern = String(values?.hostMachines || HOST_DEFAULT);
@@ -70,6 +108,7 @@ function SessionAgents() {
   useEffect(() => {
     const work = pattern(workPattern, "work");
     const hostRe = pattern(hostPattern, HOST_DEFAULT);
+    const claireRe = pattern(clairePattern, "claire");
     const labelColor = work.test(label) ? "light-dark(#6a4fe0, #a48dff)" : "light-dark(#23845f, #4cc394)";
     const style = document.createElement("style");
     style.dataset.sessionAgents = "";
@@ -162,16 +201,21 @@ function SessionAgents() {
         }
         const agent = agentOf(id);
         if (!agent) continue;
-        if (icon.dataset.saAgent !== agent.kind) {
+        const thr = roles.current.get(id);
+        const r = thr ? roleOf(thr, roles.current, projectNames.current, agent.name, claireRe) : null;
+        const tip = r ? `${agent.name} · ${r.tip}` : agent.name;
+        if (icon.dataset.saAgent !== agent.kind || icon.dataset.saRole !== (r?.role ?? "") || icon.title !== tip) {
           icon.dataset.saAgent = agent.kind;
-          icon.setAttribute("aria-label", agent.name);
-          icon.title = agent.name;
+          if (r) icon.dataset.saRole = r.role; else delete icon.dataset.saRole;
+          icon.setAttribute("aria-label", tip);
+          icon.title = tip;
         }
       }
       relabel();
       observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     };
     const schedule = () => { if (!frame && !stopped) frame = requestAnimationFrame(paint); };
+    bump.current = schedule;
     const observer = new MutationObserver(schedule);
     void loadHosts();
     const hostTimer = window.setInterval(loadHosts, 60_000); // renamed or added machines
@@ -183,7 +227,7 @@ function SessionAgents() {
       cancelAnimationFrame(frame);
       clearInterval(hostTimer);
       style.remove();
-      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-agent]")) delete el.dataset.saAgent;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-agent]")) { delete el.dataset.saAgent; delete el.dataset.saRole; }
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-labeled]")) {
         delete el.dataset.saLabeled;
         el.querySelector(":scope > .sa-label")?.remove();
@@ -194,7 +238,7 @@ function SessionAgents() {
         el.textContent = "Threads";
       }
     };
-  }, [sdk, label, workPattern, hostPattern]);
+  }, [sdk, label, workPattern, hostPattern, clairePattern]);
 
   return null;
 }
@@ -294,7 +338,8 @@ function SessionHeader() {
   const active = servers?.servers?.find((x) => x.active); // null outside bb Desktop and the mobile app
   const server = active ? { name: active.name, host: active.origin.replace(/^https?:\/\//, "") } : null;
   const rect = open ? chips.current?.getBoundingClientRect() : undefined;
-  const summary = `Domain ${label}, agent ${host ?? "unknown"}, project ${project}`;
+  const info = roleOf(thread, new Map(threads.map((t) => [t.id, t])), new Map(projects.map((p) => [p.id, p.name])), host, pattern(values?.claireMachines, "claire"));
+  const summary = `Domain ${label}, agent ${host ?? "unknown"}, project ${project}, ${info.tip}`;
 
   return (
     <>
@@ -314,6 +359,7 @@ function SessionHeader() {
           {kind ? <span data-sa-header-agent={kind} /> : null}
           <Icon name="Folder" fallback="Folder" className="size-3.5 text-muted-foreground" aria-hidden />
           <span className="sa-project max-w-[9rem] truncate">{project}</span>
+          <span className="sa-role" data-r={info.role} aria-hidden />
           <span className="sa-sep text-muted-foreground">/</span>
         </button>,
         slot,
@@ -338,6 +384,10 @@ function SessionHeader() {
                 <dd>{project}</dd>
                 {thread.environment?.path ? (<><dt className="text-muted-foreground">Folder</dt><dd className="break-all font-mono">{thread.environment?.path}</dd></>) : null}
                 {thread.environment?.branchName ? (<><dt className="text-muted-foreground">Branch</dt><dd className="font-mono">{thread.environment?.branchName}</dd></>) : null}
+                <dt className="text-muted-foreground">Role</dt>
+                <dd>{info.role === "lead" ? "Lead" : "Worker"}</dd>
+                <dt className="text-muted-foreground">Started by</dt>
+                <dd>{info.role === "worker" ? <>its lead: {info.by}</> : info.by}</dd>
                 <dt className="text-muted-foreground">Session</dt>
                 <dd>{thread.displayTitle}</dd>
               </dl>
