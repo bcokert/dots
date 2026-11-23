@@ -8,6 +8,10 @@
 //   - Projects stay in most-recently-used order: the project with the newest session moves to the top.
 //   - A session's top bar starts with where it runs: server label, agent icon, project, then the title. Tap any of
 //     them for a card with the full names.
+//   - Subagents (Claude Code Agent-tool delegations) of a running session show briefly: a pip beside its title per
+//     subagent of the latest turn (pulsing while running, green done, red failed; fading out after the turn ends),
+//     and a small dim indented row per running one with a helper-robot icon, its description and model. They are
+//     read from the thread's timeline every ~4 s, only for threads that are running; not clickable as threads.
 // bb has no slot for these, so this decorates bb's own DOM (as its plugin docs recommend for that) from one
 // always-mounted component, and undoes everything when the plugin unloads. If bb's markup changes, rows simply
 // fall back to the provider's mark.
@@ -35,6 +39,9 @@ const TERMINAL = svg("<defs><mask id='p'><rect width='24' height='24' fill='whit
 const CROWN = svg("<path d='M3 18h18M4 15 2.5 6.5l5.5 4L12 4l4 6.5 5.5-4L20 15z' fill='black'/>");
 const BRANCH = svg("<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='m15 12 4 4-4 4' stroke-width='3'/>");
 
+// A little helper robot: head with an antenna and two eyes.
+const ROBOT = svg("<rect x='4' y='8' width='16' height='12' rx='3'/><path d='M12 8V4M9 14v1M15 14v1' stroke-width='2.6'/><circle cx='12' cy='3.5' r='1' fill='black'/>");
+
 const CSS = `
 [data-sa-agent] > * { display: none !important; }
 [data-sa-agent]::before, [data-sa-header-agent]::before { content: ""; width: 14px; height: 14px; flex: none;
@@ -60,6 +67,27 @@ const CSS = `
 .sa-server { color: var(--sa-server); }
 .sa-label { margin-left: 6px; font-weight: 500; color: var(--sa-label); }
 .sa-label::before { content: "· "; color: var(--muted-foreground, currentColor); font-weight: 400; }
+/* Subagents: pips beside the title, and dim indented rows under it while they run. The robot icon (not a dot: dots
+   read as online/offline) is in the lead agent's colour; the whole block says "working for the lead". */
+.sa-subs[data-k="personal"], .sa-pips[data-k="personal"] { --sa-agent: light-dark(#23845f, #4cc394); }
+.sa-subs[data-k="work"], .sa-pips[data-k="work"] { --sa-agent: light-dark(#6a4fe0, #a48dff); }
+.sa-subs[data-k="personal-host"], .sa-pips[data-k="personal-host"] { --sa-agent: light-dark(#23845f, #4cc394); }
+.sa-subs[data-k="work-host"], .sa-pips[data-k="work-host"] { --sa-agent: light-dark(#6a4fe0, #a48dff); }
+.sa-pips { display: inline-flex; gap: 3px; align-items: center; margin-left: 6px; flex: none; transition: opacity .6s; }
+.sa-pips[data-fading] { opacity: .35; }
+.sa-pip { width: 5px; height: 8px; border-radius: 1.5px; background: var(--muted-foreground, gray); opacity: .7; }
+.sa-pip[data-s="running"] { background: var(--sa-agent, #4cc394); opacity: 1; animation: sa-pulse 1.1s ease-in-out infinite; }
+.sa-pip[data-s="done"] { background: light-dark(#23845f, #4cc394); opacity: .9; }
+.sa-pip[data-s="error"] { background: light-dark(#d03a3a, #ff6b6b); opacity: 1; }
+@keyframes sa-pulse { 50% { opacity: .25; transform: scaleY(.65); } }
+@media (prefers-reduced-motion: reduce) { .sa-pip[data-s="running"] { animation: none; } }
+.sa-subs { display: flex; flex-direction: column; margin: 0 0 2px 17px; padding-left: 7px; border-left: 1px solid var(--border, rgba(128,128,128,.3)); }
+li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
+.sa-sub { display: flex; align-items: center; gap: 5px; min-width: 0; height: 18px; font-size: 11px; line-height: 1; color: var(--muted-foreground, gray); opacity: .85; cursor: default; }
+.sa-sub::before { content: ""; width: 11px; height: 11px; flex: none; background-color: var(--sa-agent, currentColor);
+  -webkit-mask: ${ROBOT} center / contain no-repeat; mask: ${ROBOT} center / contain no-repeat; }
+.sa-sub-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sa-sub-model { flex: none; opacity: .6; font-size: 10px; }
 `;
 
 type Kind = "personal" | "work" | "personal-host" | "work-host";
@@ -76,7 +104,7 @@ const kindOf = (name: string, work: RegExp, host: RegExp): Kind =>
 /** Role and who started a session. A thread with a parent is a worker (its lead is the parent, maybe in another
  * project); one without is a lead, started by Claire when its machine matches claireMachines, else by Bdon. */
 type Role = { role: "lead" | "worker"; by: string; tip: string };
-type Thr = { id: string; projectId: string; displayTitle: string; parentThreadId: string | null };
+type Thr = { id: string; projectId: string; displayTitle: string; parentThreadId: string | null; status?: string; isArchived?: boolean };
 const roleOf = (t: Thr, all: Map<string, Thr>, projects: Map<string, string>, machine: string | null, claire: RegExp): Role => {
   if (t.parentThreadId) {
     const p = all.get(t.parentThreadId);
@@ -86,6 +114,40 @@ const roleOf = (t: Thr, all: Map<string, Thr>, projects: Map<string, string>, ma
   }
   const by = machine && claire.test(machine) ? "Claire" : "Bdon";
   return { role: "lead", by, tip: `Lead · started by ${by}` };
+};
+
+
+/** One subagent of a thread's latest turn. */
+type Sub = { id: string; name: string; model: string | null; state: "running" | "done" | "error" };
+type Row = Record<string, unknown> & { kind?: string; workKind?: string; children?: Row[] };
+const str = (v: unknown): string | null => (typeof v === "string" && v.trim() ? v.trim() : null);
+/** A turn's delegation rows (Claude Code Agent-tool calls) as subagents. Only the latest turn counts. */
+const subsFromTimeline = (rows: readonly Row[], active: readonly Row[]): Sub[] => {
+  const turn = [...rows].reverse().find((r) => r.kind === "turn");
+  const flat: Row[] = turn ? (turn.children ?? []) : [...rows];
+  // A background agent's delegation row closes at launch; its real state is a "workflow" task row (local_agent)
+  // with the same description, here or among bb's active background work.
+  const tasks = [...active, ...flat].filter((r) => r.taskType === "local_agent" && (r.kind === "work" || active.includes(r)));
+  const out: Sub[] = [];
+  for (const r of flat) {
+    if (r.kind !== "work" || r.workKind !== "delegation") continue;
+    const id = str(r.callId) ?? str(r.id);
+    if (!id) continue;
+    const pres = r.presentation as { title?: unknown; detail?: unknown } | null | undefined;
+    // detail reads like "Explore agent · model sonnet · effort high"
+    const model = (str(pres?.detail) ?? "").split("·").map((p) => p.trim()).find((p) => /^model\s+/i.test(p))?.replace(/^model\s+/i, "") ?? null;
+    let state: Sub["state"] = r.status === "pending" ? "running" : r.status === "completed" ? "done" : "error";
+    if (r.background === true && state === "done") {
+      const name = str(r.description);
+      const i = tasks.findIndex((t) => str(t.description) === name);
+      if (i >= 0) {
+        const t = tasks.splice(i, 1)[0]!;
+        state = t.taskStatus === "failed" ? "error" : t.taskStatus === "completed" ? "done" : "running";
+      }
+    }
+    out.push({ id, name: str(r.description) ?? str(pres?.title) ?? "Subagent", model, state });
+  }
+  return out;
 };
 
 function SessionAgents() {
@@ -125,6 +187,37 @@ function SessionAgents() {
     const pending = new Set<string>();
     let stopped = false;
     let frame = 0;
+
+    // Subagents per thread, from its timeline while it runs. After it stops they stay (pips only) until `until`.
+    const SUB_POLL_MS = 4_000;
+    const SUB_FADE_MS = 10_000;
+    const subs = new Map<string, { list: Sub[]; running: boolean; until: number }>();
+    const isRunning = (t: Thr) => !t.isArchived && (t.status === "active" || t.status === "starting" || t.status === "pending");
+    let polling = false;
+    const pollSubs = async () => {
+      if (polling || stopped) return;
+      polling = true;
+      try {
+        const now = Date.now();
+        const running = new Set<string>();
+        for (const t of roles.current.values()) if (isRunning(t)) running.add(t.id);
+        for (const id of [...subs.keys()]) {
+          const e = subs.get(id)!;
+          if (!running.has(id) && e.running) { e.running = false; e.until = now + SUB_FADE_MS; } // one last read below
+          else if (!running.has(id) && now > e.until) subs.delete(id);
+        }
+        // Read each running thread (and each one that just stopped) one after another: cheap on a small box.
+        for (const id of new Set([...running, ...[...subs].filter(([, e]) => !e.running && e.until === now + SUB_FADE_MS).map(([k]) => k)])) {
+          if (stopped) return;
+          try {
+            const tl = (await sdk.threads.timeline({ threadId: id, includeNestedRows: "true", segmentLimit: "1" })) as unknown as { rows?: Row[]; activeBackgroundCommands?: Row[] };
+            const list = subsFromTimeline(tl.rows ?? [], tl.activeBackgroundCommands ?? []);
+            if (list.length) subs.set(id, { list, running: running.has(id), until: running.has(id) ? Infinity : now + SUB_FADE_MS });
+            else subs.delete(id);
+          } catch { /* next tick */ }
+        }
+      } finally { polling = false; schedule(); }
+    };
 
     const agentOf = (threadId: string): Agent | null => {
       const env = threadEnv.get(threadId);
@@ -181,6 +274,66 @@ function SessionAgents() {
       }
       for (const el of document.querySelectorAll<HTMLElement>("[data-root-compose-mobile-recents] h2")) tag(el);
     };
+    // Pips beside a row's title and named rows under it. `host` is where the rows go (after the row, or in the
+    // phone's <li>); `titleEl` is what the pips follow.
+    const paintSubs = () => {
+      const now = Date.now();
+      const seen = new Set<HTMLElement>();
+      const place = (id: string, titleEl: HTMLElement | null | undefined, host: HTMLElement | null | undefined, after: HTMLElement | null) => {
+        const e = subs.get(id);
+        if (!e || !titleEl || !host || !after) return;
+        const fading = !e.running;
+        const kind = agentOf(id)?.kind ?? "";
+        const sig = e.list.map((s) => `${s.id}:${s.state}`).join("|") + (fading ? "~" : "");
+        let pips = titleEl.parentElement!.querySelector<HTMLElement>(":scope > .sa-pips");
+        if (!pips || pips.dataset.sig !== sig) {
+          pips?.remove();
+          pips = document.createElement("span");
+          pips.className = "sa-pips";
+          pips.dataset.sig = sig;
+          pips.dataset.k = kind;
+          if (fading) pips.dataset.fading = "";
+          pips.title = e.list.map((s) => `${s.name} (${s.state === "running" ? "working" : s.state === "done" ? "done" : "failed"})`).join("\n");
+          for (const s of e.list) pips.append(Object.assign(document.createElement("span"), { className: "sa-pip" }));
+          [...pips.children].forEach((c, i) => ((c as HTMLElement).dataset.s = e.list[i]!.state));
+          titleEl.after(pips);
+        }
+        seen.add(pips);
+        // Named rows only while a subagent runs.
+        const running = e.running ? e.list.filter((s) => s.state === "running") : [];
+        const existing = after.nextElementSibling as HTMLElement | null;
+        let block = existing?.classList.contains("sa-subs") && existing.dataset.saBlock !== undefined ? existing : null;
+        const bsig = kind + "|" + running.map((s) => `${s.id}:${s.name}:${s.model}`).join("|");
+        if (block && (block.dataset.sig !== bsig || !running.length)) { block.remove(); block = null; }
+        if (!block && running.length) {
+          block = document.createElement(after?.tagName === "LI" ? "li" : "div"); // the phone list is a <ul>
+          block.className = "sa-subs";
+          block.dataset.saBlock = "";
+          block.dataset.sig = bsig;
+          block.dataset.k = kind;
+          for (const s of running) {
+            const row = document.createElement("div");
+            row.className = "sa-sub";
+            row.title = `Subagent working for this session: ${s.name}${s.model ? ` (${s.model})` : ""}`;
+            row.append(Object.assign(document.createElement("span"), { className: "sa-sub-name", textContent: s.name }));
+            if (s.model) row.append(Object.assign(document.createElement("span"), { className: "sa-sub-model", textContent: s.model }));
+            block.append(row);
+          }
+          after.after(block);
+        }
+        if (block) seen.add(block);
+      };
+      for (const a of document.querySelectorAll<HTMLElement>("a[data-sidebar-thread-id]")) {
+        const row = a.closest<HTMLElement>("[data-sidebar-rename-row]");
+        place(a.dataset.sidebarThreadId!, row?.querySelector<HTMLElement>(".bb-thread-title"), row?.parentElement, row ?? null);
+      }
+      for (const li of document.querySelectorAll<HTMLElement>("[data-root-compose-mobile-recents] li")) {
+        const id = li.querySelector("a[href*='/threads/']")?.getAttribute("href")?.match(/\/threads\/([^/?#]+)/)?.[1];
+        if (id) place(id, li.querySelector<HTMLElement>(".bb-thread-title"), li.parentElement, li);
+      }
+      for (const el of document.querySelectorAll<HTMLElement>(".sa-pips, [data-sa-block]")) if (!seen.has(el)) el.remove();
+      void now;
+    };
     const paint = () => {
       frame = 0;
       if (stopped) return;
@@ -211,6 +364,7 @@ function SessionAgents() {
           icon.title = tip;
         }
       }
+      paintSubs();
       relabel();
       observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     };
@@ -219,6 +373,8 @@ function SessionAgents() {
     const observer = new MutationObserver(schedule);
     void loadHosts();
     const hostTimer = window.setInterval(loadHosts, 60_000); // renamed or added machines
+    const subTimer = window.setInterval(pollSubs, SUB_POLL_MS);
+    void pollSubs();
     schedule();
 
     return () => {
@@ -226,6 +382,8 @@ function SessionAgents() {
       observer.disconnect();
       cancelAnimationFrame(frame);
       clearInterval(hostTimer);
+      clearInterval(subTimer);
+      for (const el of document.querySelectorAll(".sa-pips, [data-sa-block]")) el.remove();
       style.remove();
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-agent]")) { delete el.dataset.saAgent; delete el.dataset.saRole; }
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-labeled]")) {
