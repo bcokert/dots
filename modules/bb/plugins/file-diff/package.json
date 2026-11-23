@@ -1,0 +1,28 @@
+{
+  "name": "bb-plugin-file-diff",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "bb": ">=0.49",
+    "bbPluginSdk": ">=0.6.132"
+  },
+  "bb": {
+    "name": "File diff",
+    "description": "File links open on their uncommitted diff, with a Diff | File toggle. Unchanged files open bb's own preview.",
+    "branding": {
+      "icon": "FileDiff"
+    },
+    "app": "./app.tsx",
+    "server": "./server.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@get-bb/plugin-sdk": "0.6.132",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0"
+  }
+}
