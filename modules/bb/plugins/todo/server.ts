@@ -12,6 +12,7 @@ const any = z.any();
 
 export const rpcContract = defineRpcContract({
   list: { input: z.object({ path }), output: any },
+  todo: { input: z.object({ id, path: path.optional() }), output: any },
   blues: { input: z.null(), output: any },
   item: { input: z.object({ path, id, done: z.boolean().optional(), blue: z.boolean().optional() }), output: any },
   remove: { input: z.object({ path, id }), output: any },
@@ -62,6 +63,19 @@ export default async function plugin(bb: BbPluginApi) {
 
   bb.rpc.register(rpcContract, {
     list: ({ path }) => call("GET", `/api/list?path=${q(path)}`),
+    // One todo for a chat chip: { path, title, item } (item null when it's gone). Newer apps answer GET /api/todo;
+    // an older one has no such route ("not found"), so fall back to reading the list the link names.
+    todo: async ({ id, path }) => {
+      try {
+        return await call("GET", `/api/todo?id=${q(id)}${path ? `&path=${q(path)}` : ""}`);
+      } catch (err) {
+        const msg = (err as Error).message;
+        if (/^no todo \^/.test(msg)) return { path: path ?? "", title: "", item: null };
+        if (msg !== "not found" || !path) throw err;
+        const l = await call("GET", `/api/list?path=${q(path)}`);
+        return { path: l.path, title: l.title, item: l.items.find((i: { id: string }) => i.id === id) ?? null };
+      }
+    },
     blues: () => call("GET", "/api/blues"),
     item: ({ path, id, done, blue }) => call("POST", "/api/item", { path, id, done, blue }),
     remove: ({ path, id }) => call("DELETE", `/api/item?path=${q(path)}&id=${q(id)}`),

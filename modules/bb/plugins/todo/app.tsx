@@ -6,7 +6,7 @@ import { definePluginApp, experimental_Icon as Icon, useBbNavigate, useRealtime,
 import type { rpcContract } from "./server";
 
 type Child = { path: string; title: string; open: number; done: number; blue: number; doing: number };
-type Item = { fields?: Record<string, string>; id: string; text: string; done: boolean; blue: boolean; doing: string | null; by: string | null; child?: Child };
+type Item = { notes?: string; fields?: Record<string, string>; id: string; text: string; done: boolean; blue: boolean; doing: string | null; by: string | null; child?: Child };
 type List = { path: string; title: string; project: { status: string | null } | null; items: Item[]; implicit: Child[]; crumbs: { path: string; title: string }[] };
 type Blue = { path: string; list: string; id: string; text: string; doing: string | null };
 const CHANGED = "todo-changed";
@@ -316,8 +316,12 @@ function Chip({ host, life }: { host: Host; life: string }) {
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState(false);
   const refetch = useCallback(() => {
-    rpc.call("list", { path: host.path }).then((l) => { setList(l as List); setFailed(false); }, () => setFailed(true));
-  }, [rpc, host.path]);
+    // A todo link asks for just that todo (id lookup); a list link reads the list.
+    const got = host.id
+      ? rpc.call("todo", { id: host.id, path: host.path || undefined }).then((r: any) => ({ title: r.title, items: r.item ? [r.item] : [] }) as unknown as List)
+      : rpc.call("list", { path: host.path }).then((l) => l as List);
+    got.then((l) => { setList(l); setFailed(false); }, () => setFailed(true));
+  }, [rpc, host.path, host.id]);
   useEffect(refetch, [refetch]);
   useRealtime(CHANGED, refetch);
 
@@ -354,6 +358,7 @@ function Chip({ host, life }: { host: Host; life: string }) {
             <span className="text-xs text-muted-foreground">{isList ? `${openItems.length} open` : crumb ? `in ${crumb}` : ""}</span></span> : null}
           {list && !isList && !item ? <span className="block text-muted-foreground">Not found in this list any more (it may have been reworded or moved).</span> : null}
           {meta.map(([k, v]) => <span key={k} className="flex gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="min-w-0 break-words">{v}</span></span>)}
+          {item?.notes ? <span className="block whitespace-pre-wrap break-words text-muted-foreground">{item.notes}</span> : null}
           {extra.map(([k, v]) => <span key={k} className="flex gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="min-w-0 break-words">{v}</span></span>)}
           {isList ? (openItems.length ? openItems.slice(0, 8).map((i) => <span key={i.id} className="block break-words">{i.doing ? "● " : "○ "}{i.text}</span>) : <span className="block text-muted-foreground">Nothing open.</span>) : null}
           {isList && openItems.length > 8 ? <span className="block text-muted-foreground">+ {openItems.length - 8} more</span> : null}
