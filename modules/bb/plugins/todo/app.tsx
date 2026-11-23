@@ -324,6 +324,8 @@ function Chip({ host, life }: { host: Host; life: string }) {
   const item = host.id ? list?.items.find((i) => i.id === host.id) ?? null : null;
   const isList = !host.id;
   const name = item?.text ?? (isList ? list?.title : null) ?? host.label;
+  // The pill shows a word or two; the full name, its list and the rest live in the expanded view.
+  const short = String(name ?? "").split(/[:,(—]/)[0].trim().split(/\s+/).slice(0, 2).join(" ");
   const tone = item ? (item.done ? "done" : item.blue ? "blue" : item.doing ? "doing" : "open") : "open";
   const bg = tone === "blue" ? "bg-sky-500/20" : tone === "doing" ? "bg-emerald-500/20" : "bg-muted/70";
   const f = item?.fields ?? {};
@@ -339,18 +341,17 @@ function Chip({ host, life }: { host: Host; life: string }) {
   return (
     <span className={`max-w-full align-baseline ${open ? "block" : "inline-block"}`}>
       <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(!open); }}
-        title={failed ? "Couldn't load this todo; click for the link" : undefined}
-        className={`inline-flex max-w-full cursor-pointer items-center gap-1.5 rounded px-1.5 py-px align-baseline text-[0.95em] ${bg} ${tone === "done" ? "text-muted-foreground" : ""}`}>
-        {isList ? <Icon name="Folder" className="size-3.5 flex-none" />
-          : <span className={`grid size-3.5 flex-none place-items-center rounded-[3px] border-[1.5px] ${tone === "done" ? "border-foreground bg-foreground text-background" : "border-muted-foreground/60"}`}>{tone === "done" ? <Icon name="Check" className="size-2.5" /> : null}</span>}
-        <span className={`min-w-0 break-words text-left ${isList ? "font-medium" : ""} ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{name}</span>
-        {isList ? (list ? <span className="flex-none text-xs text-muted-foreground">{openItems.length} open</span> : null)
-          : crumb ? <span className="min-w-0 max-w-[9rem] flex-none truncate text-xs text-muted-foreground">in {crumb}</span> : null}
-        <Icon name={open ? "ChevronUp" : "ChevronDown"} className="size-3 flex-none text-muted-foreground" />
+        title={failed ? "Couldn't load this todo; click for the link" : `${name}${isList ? ` · ${openItems.length} open` : crumb ? ` · in ${crumb}` : ""}`}
+        className={`inline-flex max-w-full cursor-pointer items-center gap-1 rounded-full px-1.5 py-px align-baseline text-[0.8em] leading-tight ${bg} ${tone === "done" ? "text-muted-foreground" : ""}`}>
+        {isList ? <Icon name="Folder" className="size-3 flex-none" />
+          : <span className={`grid size-3 flex-none place-items-center rounded-[3px] border-[1.5px] ${tone === "done" ? "border-foreground bg-foreground text-background" : "border-muted-foreground/60"}`}>{tone === "done" ? <Icon name="Check" className="size-2.5" /> : null}</span>}
+        <span className={`max-w-[7.5rem] truncate whitespace-nowrap text-left ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{short}</span>
       </button>
       {open ? (
         <span className="my-1 block space-y-1 border-l-2 border-muted-foreground/30 py-0.5 pl-3 text-sm">
           {failed || (!list) ? <span className="block text-muted-foreground">{failed ? "Couldn't read this todo." : "Loading..."}</span> : null}
+          {list ? <span className="block"><span className={`font-medium ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{name}</span>{" "}
+            <span className="text-xs text-muted-foreground">{isList ? `${openItems.length} open` : crumb ? `in ${crumb}` : ""}</span></span> : null}
           {list && !isList && !item ? <span className="block text-muted-foreground">Not found in this list any more (it may have been reworded or moved).</span> : null}
           {meta.map(([k, v]) => <span key={k} className="flex gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="min-w-0 break-words">{v}</span></span>)}
           {extra.map(([k, v]) => <span key={k} className="flex gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="min-w-0 break-words">{v}</span></span>)}

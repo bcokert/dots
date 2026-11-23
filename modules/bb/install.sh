@@ -116,9 +116,12 @@ ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work mach
 #     launcher in front of bb's Claude executable (BB_CLAUDE_CODE_EXECUTABLE), the pods' claude-pod wrapper included.
 changed=0; plugin_setting genui webLookups false && changed=1
 (( changed )) && bbc plugin reload genui >/dev/null
+#   plan-progress automaticReminders off: it nudged mid-turn about a bar that already existed (9 times in one day);
+#     the lead rules in AGENTS.md already say when a job gets a bar.
 changed=0; plugin_setting plan-progress isolateClaude false && changed=1
+plugin_setting plan-progress automaticReminders false && changed=1
 (( changed )) && bbc plugin reload plan-progress >/dev/null
-ok "genui: web lookups off; plan-progress: Claude launcher left alone"
+ok "genui: web lookups off; plan-progress: Claude launcher left alone, no automatic reminders"
 
 # 2b. This bb server's own machine (the one with no machine provider) gets BB_MACHINE_NAME, if set.
 if [[ -n "${BB_MACHINE_NAME:-}" ]]; then
