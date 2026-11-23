@@ -1,5 +1,6 @@
 # bb: make this machine's bb server match dots, and keep it that way.
 #   - every plugin in plugins/ is built and installed from its path (or rebuilt and reloaded)
+#   - third-party plugins (git_plugins) are installed from git, pinned to a reviewed commit
 #   - plugin settings are applied (per machine: machine type, then ~/.config/dots/bb.env overrides)
 #   - a nightly bb automation pulls dots and re-runs this module, so every bb server stays in sync
 # Skipped where no bb server answers. Uses `bb` when it's on PATH, otherwise bb's `npx --package bb-app bb`, so a
@@ -60,6 +61,27 @@ while read -r id src; do
   fix "uninstalled bb-plugin $id (its folder ${src#path:} is gone)"
 done <<<"$installed"
 
+# 1b'. Third-party plugins: installed from git, pinned to the commit we reviewed (their server code runs inside bb
+# with this user's rights). Bumping one: read the diff since the pinned commit, then change the sha here. The next run
+# removes the old pin and installs the new one; bb deletes a removed plugin's settings, and section 2 sets ours again.
+git_plugins=(
+  "genui https://github.com/ComicBit/bb-plugin-genui.git d8cac8d1781bac336214cc38981aba4a58d9c1c0"
+  "plan-progress https://github.com/mrsu-smirnov/bb-plugin-plan-progress.git 3be8ee2702021f73db6919bc024834254304b8f3"
+)
+for entry in "${git_plugins[@]}"; do
+  read -r id url sha <<<"$entry"
+  src="$(bbc plugin source "$id" --json 2>/dev/null)" || src=""
+  if [[ -n "$src" ]] && grep -q "$sha" <<<"$src"; then ok "bb-plugin $id (${sha:0:7})"; continue; fi
+  if [[ -n "$src" ]]; then
+    bbc plugin remove "$id" >/dev/null || fail "bb plugin remove $id failed"
+    fix "removed bb-plugin $id's old pin"
+  fi
+  fix "installing bb-plugin $id at ${sha:0:7}"
+  bbc plugin install "git:$url@$sha" --yes >/dev/null || fail "bb plugin install git:$url@$sha failed"
+  bbc plugin source "$id" --json >/dev/null 2>&1 || fail "installed $url, but not as bb-plugin \"$id\" (bb plugin list): fix its id in git_plugins"
+  ok "bb-plugin $id"
+done
+
 # 1c. Built-in plugins we don't use stay off. Worktrees: a new session opens the project's own folder (bb's
 # "Project checkout"), so the picker is just project + machine; agents handle branches themselves.
 for id in ${BB_PLUGINS_OFF-environment-git-worktree}; do
@@ -75,7 +97,7 @@ done
 # 2. Plugin settings
 plugin_setting() { # PLUGIN KEY VALUE
   local now
-  now="$(bbc plugin config "$1" --json 2>/dev/null | jq -r --arg k "$2" '.values[$k] // ""')"
+  now="$(bbc plugin config "$1" --json 2>/dev/null | jq -r --arg k "$2" '.values[$k] | if . == null then "" else tostring end')"
   [[ "$now" == "$3" ]] && return 1
   bbc plugin config "$1" set "$2" "$3" >/dev/null && fix "$1: $2 = \"$3\""
 }
@@ -85,6 +107,18 @@ plugin_setting session-agents workMachines "${BB_WORK_MACHINES:-work}" && change
 plugin_setting session-agents hostMachines "${BB_HOST_MACHINES:-\bhost\$}" && changed=1
 (( changed )) && bbc plugin reload session-agents >/dev/null
 ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work machines /${BB_WORK_MACHINES:-work}/, host machines /${BB_HOST_MACHINES:-\bhost\$}/"
+
+# 2c. Third-party plugin settings.
+#   genui webLookups off: with it on, any https image a reply's UI names is fetched by this bb server, with no tool
+#     call to see or approve. A prompt-injected session could put private data in that URL. Off also turns off
+#     ImageSearch and Map lookups (photos, place names, map tiles).
+#   plan-progress isolateClaude off: it only hides a Claude Desktop mod we don't use, and it works by putting its own
+#     launcher in front of bb's Claude executable (BB_CLAUDE_CODE_EXECUTABLE), the pods' claude-pod wrapper included.
+changed=0; plugin_setting genui webLookups false && changed=1
+(( changed )) && bbc plugin reload genui >/dev/null
+changed=0; plugin_setting plan-progress isolateClaude false && changed=1
+(( changed )) && bbc plugin reload plan-progress >/dev/null
+ok "genui: web lookups off; plan-progress: Claude launcher left alone"
 
 # 2b. This bb server's own machine (the one with no machine provider) gets BB_MACHINE_NAME, if set.
 if [[ -n "${BB_MACHINE_NAME:-}" ]]; then

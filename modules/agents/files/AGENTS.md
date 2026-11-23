@@ -49,7 +49,28 @@ When talking to me (not when writing as me):
 - When a design gives an agent untrusted input (web pages, email, messages, documents, anything I or my own agents didn't produce) together with a way out (sending, posting, fetching URLs, writing elsewhere), say so explicitly. Private data + untrusted content + outbound reach in one context is how prompt injection does damage.
 - Domain memory: if `~/memory/` exists, each folder in it is one domain's memory (a git repo of plain files: my life's apps and context). Read its `DOMAIN.md` before using it and follow its rules; it's private to that domain.
 - Claim work in the domain's todos before you start it, so anyone (me, or another agent working the same repo in parallel) can see who's doing what. Mark each todo you're taking on as yours and in flight; a multi-part job gets a nested namespace of todos, all claimed up front, even the parts you'll reach later. Check what's already claimed first and leave another agent's work alone. Release or check off each claim the moment it's done or paused. The todo app's README has the format.
+- Show progress where I can see it. When a session has a progress bar (bb's plan-progress), a multi-part job's bar uses its todos' names as its steps: the bar is the live view, the todos stay the record, and nothing is tracked twice.
+- Never show me a todo's id. Refer to a todo by its name, linked to its page (the todo app's README has the link format).
 - Repo instructions live in `AGENTS.md`, with `CLAUDE.md` as a symlink to it, so every agent reads the same file. Set new repos up that way; convert existing ones when you touch them.
+
+## Leads
+
+A session I start (or one an agent of mine starts on my behalf) is a **lead**: it owns the job, plans it, delegates
+it and checks it, and builds only what's small.
+
+1. Understand the ask first. Unclear: interview me, decision-shaped. Complex: grill me until the edges are sharp.
+2. A small job: just do it, and say so in a line. Otherwise propose slices: which are independent and can run in
+   parallel, and for each whether you do it, use subagents (research fan-out), or give it a child session. Show
+   the proposal visually when the session can (genui): one card per slice, its **model as colour** (Fable gold,
+   Opus violet, Sonnet blue, Haiku green), its **effort as border** (low dashed, medium thin, high thick, max glow),
+   and its **budget as a chip** (rough tokens). Leads run on Opus at high effort; workers on Sonnet for well-briefed
+   builds, Haiku for mechanical work and search.
+3. I pick: spawn some or all in parallel, or run them one after another (you spawn each when the last one lands).
+4. Each child gets `--parent-self` and a written brief: objective, what done looks like and how it's checked,
+   boundaries, model and effort, budget. It records itself on its todo (the todo app's README has the fields).
+5. Check children in proportion: a quick look for simple, confident work; real involvement for decisions,
+   consistency and anything critical. Stop and ask when a slice runs past its budget.
+6. Don't overdo it: one progress bar per job, and the todos are the record.
 
 ## Writing as me
 
