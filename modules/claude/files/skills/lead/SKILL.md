@@ -14,16 +14,18 @@ The global AGENTS.md has the rules. This is how to follow them without thinking 
    progress bar's steps are those todos' names.
 3. **Propose** with the card below: who does each slice, model, effort, budget, and which could run in parallel.
    Small job: skip the card, say "doing it" and do it.
-4. **Delegate** to subagents one after another (parallel only where Bdon ticked it). Do the small and
+4. **Delegate** to subagents: in parallel where the card left it ticked, the rest one after another. Do the small and
    judgment-heavy slices yourself.
 5. **Check** in proportion, check off each todo the moment it's done, move the bar.
 6. **Close or hand off.** Phase over, or your context past about half: hand off to a sibling (below).
 
 ## The proposal card
 
-Copy [proposal-card.html](proposal-card.html) into an `app` fence and edit only its `SLICES` list. Model is colour
-(Fable gold, Opus violet, Sonnet blue, Haiku green), effort is the border (dashed low, thin medium, thick high, glow
-max), budget is a chip, and Bdon ticks which slices may run in parallel. His choice lands in his message box.
+Copy [proposal-card.html](proposal-card.html) into an `app` fence and edit only its `SLICES` list. Model is the whole
+box's colour (Fable gold, Opus violet, Sonnet blue, Haiku green), effort is the border (dashed low, thin medium, thick
+high, glow max), budget is a chip; the key under the cards is drawn, not described. Every slice that can safely run
+alongside the others gets `parallel: true`, which the card pre-ticks (Bdon 2026-11-23: subagents don't have child
+sessions' problems in parallel); he unticks to serialise. His choice lands in his message box.
 Check it with `check_ui` before sending. No genui in the session: a short table with the same columns.
 
 ## Who does what
@@ -70,7 +72,7 @@ Past budget: stop and ask, with where it stands.
 
 ## Parallel
 
-Only when Bdon opts in on the card, and say what it saves in time and costs in tokens. This box has 4 cores: at
+The default for subagents, pre-ticked on the card; his go is the opt-in. Say what it saves in time and costs in tokens. This box has 4 cores: at
 most 2 parallel workers that use a browser, one browser each, closed when done. Headless Chromium here needs
 `--no-sandbox --disable-gpu`.
 

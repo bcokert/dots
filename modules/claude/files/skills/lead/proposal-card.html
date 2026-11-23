@@ -1,61 +1,64 @@
 <style>
   .cards { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
-  .card { position: relative; padding: 10px 12px 10px 14px; border-radius: 10px; background: var(--card); border: 1px solid var(--border); }
-  .card::before { content: ""; position: absolute; left: 0; top: 8px; bottom: 8px; width: 4px; border-radius: 4px; background: var(--m); }
-  .card[data-effort="low"] { border-style: dashed; }
-  .card[data-effort="high"] { border-width: 2.5px; border-color: var(--m); }
-  .card[data-effort="max"] { border-width: 2.5px; border-color: var(--m); box-shadow: 0 0 14px -2px var(--m); }
   .m-fable { --m: #d4a72c; } .m-opus { --m: #8b5cf6; } .m-sonnet { --m: #3b82f6; } .m-haiku { --m: #22a06b; }
+  /* The whole box is the model's colour; its border is the effort. */
+  .card { padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--m) 14%, var(--card));
+    border: 1px solid color-mix(in srgb, var(--m) 55%, transparent); }
+  .e-low { border-style: dashed; }
+  .e-high { border-width: 2.5px; border-color: var(--m); }
+  .e-max { border-width: 2.5px; border-color: var(--m); box-shadow: 0 0 14px -2px var(--m); }
   .top { display: flex; align-items: baseline; gap: 8px; }
   .title { font-weight: 600; flex: 1; }
-  .who { font-size: 12px; color: var(--m); font-weight: 600; }
+  .who { font-size: 12px; color: var(--muted-foreground); }
   .what { margin: 4px 0 8px; font-size: 13px; color: var(--muted-foreground); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; }
-  .chip { padding: 1px 8px; border-radius: 999px; background: var(--muted); }
+  .chip { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--m) 22%, transparent); }
   .par { display: flex; gap: 6px; align-items: center; margin-left: auto; color: var(--muted-foreground); }
   .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; }
-  .legend { color: var(--muted-foreground); font-size: 12px; margin-left: auto; }
+  /* Key: tiny boxes drawn like the cards, so it reads without words to decode. */
+  .key { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-left: auto; font-size: 11px; color: var(--muted-foreground); }
+  .key .card { padding: 1px 7px; border-radius: 6px; }
+  .key .gap { width: 8px; }
 </style>
 <div class="cards" id="cards"></div>
 <div class="bar">
   <button type="button" id="go">Put my choice in my message</button>
   <span id="status" role="status"></span>
-  <span class="legend">colour = model · border = effort (dashed low, thin medium, thick high, glow max) · chip = budget</span>
+  <span class="key" id="key"></span>
 </div>
 <script>
 (function () {
   // The lead edits only this list. who: "me" (the lead) or "subagent"; model: fable | opus | sonnet | haiku;
   // effort: low | medium | high | max; budget: rough tokens as the usage panel counts them; parallel: can run
-  // alongside the others (Bdon opts in per slice); after: the slice it waits for, if any.
+  // alongside the others (pre-ticked; Bdon unticks to serialise); after: the slice it waits for, if any.
   const SLICES = [
     { title: "Example slice", what: "One line on what it delivers", who: "subagent", model: "sonnet", effort: "medium", budget: "~100k", parallel: true },
   ];
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
   const cards = document.getElementById("cards");
   SLICES.forEach((s, i) => {
-    const card = document.createElement("div");
-    card.className = "card m-" + s.model;
-    card.dataset.effort = s.effort;
-    const top = document.createElement("div"); top.className = "top";
-    const title = document.createElement("span"); title.className = "title"; title.textContent = (i + 1) + ". " + s.title;
-    const who = document.createElement("span"); who.className = "who"; who.textContent = (s.who === "me" ? "lead" : "subagent") + " · " + s.model;
-    top.append(title, who);
-    const what = document.createElement("div"); what.className = "what"; what.textContent = s.what + (s.after ? " (after " + s.after + ")" : "");
-    const chips = document.createElement("div"); chips.className = "chips";
-    const budget = document.createElement("span"); budget.className = "chip"; budget.textContent = s.budget + " tokens";
-    const effort = document.createElement("span"); effort.className = "chip"; effort.textContent = s.effort + " effort";
-    chips.append(budget, effort);
+    const card = el("div", "card m-" + s.model + " e-" + s.effort);
+    const top = el("div", "top");
+    top.append(el("span", "title", (i + 1) + ". " + s.title), el("span", "who", (s.who === "me" ? "lead" : "subagent") + " · " + s.model));
+    const what = el("div", "what", s.what + (s.after ? " (after " + s.after + ")" : ""));
+    const chips = el("div", "chips");
+    chips.append(el("span", "chip", s.budget + " tokens"), el("span", "chip", s.effort + " effort"));
     if (s.parallel) {
-      const label = document.createElement("label"); label.className = "par";
-      const box = document.createElement("input"); box.type = "checkbox"; box.id = "p" + i; box.dataset.i = String(i);
+      const label = el("label", "par");
+      const box = document.createElement("input"); box.type = "checkbox"; box.checked = true; box.id = "p" + i; box.dataset.i = String(i);
       label.htmlFor = box.id; label.append(box, document.createTextNode("parallel"));
       chips.append(label);
     }
     card.append(top, what, chips);
     cards.append(card);
   });
+  const key = document.getElementById("key");
+  ["fable", "opus", "sonnet", "haiku"].forEach((m) => key.append(el("span", "card m-" + m, m)));
+  key.append(el("span", "gap"));
+  ["low", "medium", "high", "max"].forEach((e) => key.append(el("span", "card m-opus e-" + e, e)));
   document.getElementById("go").addEventListener("click", () => {
-    const picked = [...document.querySelectorAll("input[type=checkbox]:checked")].map((b) => SLICES[Number(b.dataset.i)].title);
-    const text = picked.length ? "Go. Run in parallel: " + picked.join(", ") + ". The rest one after another." : "Go, one after another.";
+    const on = [...document.querySelectorAll("input[type=checkbox]:checked")].map((b) => SLICES[Number(b.dataset.i)].title);
+    const text = on.length > 1 ? "Go. Run in parallel: " + on.join(", ") + ". The rest one after another." : "Go, one after another.";
     document.getElementById("status").textContent = genui.answer(text) ? "In your message; send when ready." : "Couldn't add it.";
   });
 })();
