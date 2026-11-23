@@ -81,7 +81,8 @@ When a phase ends or your context passes about half, start a fresh session inste
 1. Write the handoff to a file: the goal, decisions made (with why), where it stands, the next slices, and links
    to the todos (by name). Enough that the new session never needs this transcript.
 2. Start it in the same project, titled `<job> · <phase>`:
-   `bb thread spawn --project <id> --title "<job> · <phase>" --prompt-file <handoff>`
+   `bb thread spawn --project <id> --environment "$BB_ENVIRONMENT_ID" --title "<job> · <phase>" --prompt-file <handoff>`
+   (`--environment`: without it bb tries a worktree, and worktrees may be off)
    (or bb's Handoff in the app). No `--parent-self`: it's a sibling, not a child.
 3. Release your todo claims for what the sibling takes over (it claims them with its own `thread::`), mark your
    bar done, and tell Bdon the new session's name with a link (`@thread:<id>`).
@@ -90,7 +91,7 @@ When a phase ends or your context passes about half, start a fresh session inste
 
 Only when Bdon would want to open and steer that piece himself, it must outlive you, or it needs another machine:
 
-`bb thread spawn --project <id> --parent-self --lifecycle-owner-thread "$BB_THREAD_ID" --model <model> --reasoning-level <level> --title "<slice>" --prompt-file <brief>`
+`bb thread spawn --project <id> --environment <env id or path> --parent-self --lifecycle-owner-thread "$BB_THREAD_ID" --model <model> --reasoning-level <level> --title "<slice>" --prompt-file <brief>`
 
 Same brief. It sets `role:: worker` and `thread::` on its todo. Archive it (`bb thread archive <id>`) once its
 work is reviewed and committed.
