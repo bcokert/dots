@@ -10,7 +10,8 @@ The global AGENTS.md has the rules. This is how to follow them without thinking 
 ## The shape of every job
 
 1. **Understand.** Restate the ask in a line. Unclear: ask, decision-shaped. Complex: grill until the edges are sharp.
-2. **Break it down up front.** One todo per slice in a nested namespace (the todo app's README), all claimed.
+2. **Break it down up front.** One todo per slice in a nested namespace, all claimed the todo app's way
+   (its README, "Who does what").
 3. **Propose** with the card below: who does each slice, model, effort, budget, and which could run in parallel.
    Small job: skip the card, say "doing it" and do it.
 4. **Delegate** to subagents: in parallel where the card left it ticked, the rest one after another. Do the small and
@@ -85,7 +86,7 @@ When a phase ends or your context passes about half, start a fresh session inste
    `bb thread spawn --project <id> --environment "$BB_ENVIRONMENT_ID" --title "<job> · <phase>" --prompt-file <handoff>`
    (`--environment`: without it bb tries a worktree, and worktrees may be off)
    (or bb's Handoff in the app). No `--parent-self`: it's a sibling, not a child.
-3. Release your todo claims for what the sibling takes over (it claims them with its own `thread::`), and tell Bdon
+3. Release your todo claims for what the sibling takes over (it claims them itself, the todo app's way), and tell Bdon
    the new session's name with a link (`@thread:<id>`).
 
 ## Child sessions: the exception
@@ -94,5 +95,5 @@ Only when Bdon would want to open and steer that piece himself, it must outlive 
 
 `bb thread spawn --project <id> --environment <env id or path> --parent-self --lifecycle-owner-thread "$BB_THREAD_ID" --model <model> --reasoning-level <level> --title "<slice>" --prompt-file <brief>`
 
-Same brief. It sets `role:: worker` and `thread::` on its todo. Archive it (`bb thread archive <id>`) once its
-work is reviewed and committed.
+Same brief. It claims its todo as a worker, the todo app's way (its README, "Who does what"). Archive it
+(`bb thread archive <id>`) once its work is reviewed and committed.

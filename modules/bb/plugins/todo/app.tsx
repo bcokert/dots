@@ -1,12 +1,12 @@
 // todo bb-plugin frontend: the todo lists as a side-panel tab, and the blues floating over bb.
-// Same look and behaviour as the web UI (web/index.html in this repo), in bb's own theme. Keep the two in step.
+// Same look and behaviour as the life dashboard (clarity-todo web/life.html), in bb's own theme. Keep the two in step.
 import React, { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { definePluginApp, experimental_Icon as Icon, useBbNavigate, useRealtime, useRpc, useSettings } from "@get-bb/plugin-sdk/app";
 import type { rpcContract } from "./server";
 
 type Child = { path: string; title: string; open: number; done: number; blue: number; doing: number };
-type Item = { notes?: string; fields?: Record<string, string>; id: string; text: string; done: boolean; blue: boolean; doing: string | null; by: string | null; child?: Child };
+type Item = { notes?: string; fields?: Record<string, string>; issues?: string[]; id: string; text: string; done: boolean; blue: boolean; doing: string | null; by: string | null; child?: Child };
 type List = { path: string; title: string; project: { status: string | null } | null; items: Item[]; implicit: Child[]; crumbs: { path: string; title: string }[] };
 type Blue = { path: string; list: string; id: string; text: string; doing: string | null };
 const CHANGED = "todo-changed";
@@ -70,9 +70,134 @@ function Bullet({ done }: { done: boolean }) {
   );
 }
 
+// --- Who: owner, claim, added by, problems (the todo app's README, "Who does what"). The same chips as the life
+// dashboard's who(item, size) in clarity-todo web/life.html, with bb's session icons and colours copied from the
+// session-agents plugin: house = personal pod, briefcase = work pod, solid terminal = a Host agent, crown = lead,
+// branch arrow = worker. Keep all three in step. Sizes: "row" (list rows) and "full" (a chat chip's details).
+const svg = (body: string) =>
+  `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${body}</svg>`)}")`;
+const WHO_ICONS: Record<string, string> = {
+  house: "<path d='M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z'/>",
+  briefcase: "<rect x='2.5' y='7' width='19' height='13.5' rx='1.5'/><path d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/><path d='M2.5 13h19'/>",
+  terminal: "<defs><mask id='p'><rect width='24' height='24' fill='white'/><path d='M7 9.5l3 2.5-3 2.5M12.5 15H17' stroke='black'/></mask></defs><rect x='1.5' y='3.5' width='21' height='17' rx='3.5' fill='black' stroke='none' mask='url(#p)'/>",
+  person: "<circle cx='12' cy='7.5' r='4'/><path d='M4 21c0-4.6 3.6-7.5 8-7.5s8 2.9 8 7.5'/>",
+  cog: "<circle cx='12' cy='12' r='3.2' stroke-width='2.6'/><path d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1' stroke-width='2.8'/>",
+  crown: "<path d='M3 18h18M4 15 2.5 6.5l5.5 4L12 4l4 6.5 5.5-4L20 15z' fill='black'/>",
+  branch: "<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='m15 12 4 4-4 4' stroke-width='3'/>",
+};
+const WHO_CSS = `
+[data-wc="personal"] { --wc: light-dark(#23845f, #4cc394); } [data-wc="work"] { --wc: light-dark(#6a4fe0, #a48dff); }
+[data-wc="bdon"], [data-wc="app"], [data-wc="unk"] { --wc: var(--muted-foreground, gray); }
+.td-wi, .td-wr { display: inline-block; flex: none; width: 14px; height: 14px; background-color: var(--wc, currentColor);
+  -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+.td-wr { width: 10px; height: 10px; }
+.td-wi[data-i="unk"] { -webkit-mask: none; mask: none; background: none; color: var(--wc); font: 700 12px/14px ui-monospace, monospace; text-align: center; }
+.td-wi[data-i="unk"]::before { content: "?"; }
+.td-claim { display: inline-flex; align-items: center; gap: 4px; height: 18px; padding: 0 6px 0 5px; font: 500 10px/1 ui-monospace, monospace;
+  letter-spacing: .04em; color: var(--muted-foreground); background: color-mix(in srgb, currentColor 10%, transparent); }
+.td-claim[data-live] { color: var(--foreground); background: color-mix(in srgb, var(--wc) 15%, transparent); box-shadow: 0 0 9px 1px color-mix(in srgb, var(--wc) 45%, transparent); }
+.td-claim.rec { padding-right: 5px; opacity: .6; }
+button.td-claim { cursor: pointer; } button.td-claim:hover { filter: brightness(1.35); }
+.td-wmk { display: inline-flex; flex: none; filter: drop-shadow(0 0 3px var(--wc)); } .td-wmk .td-wi { width: 11px; height: 11px; }
+.td-by { display: inline-flex; opacity: .6; } .td-by .td-wi { width: 11px; height: 11px; }
+.td-lint { display: inline-grid; place-items: center; width: 16px; height: 16px; font: 700 11px/1 ui-monospace, monospace;
+  color: light-dark(#c4153a, #ff4d6d); background: color-mix(in srgb, light-dark(#c4153a, #ff4d6d) 16%, transparent); cursor: default; }
+${Object.entries(WHO_ICONS).map(([k, b]) => `.td-wi[data-i="${k}"], .td-wr[data-i="${k}"] { -webkit-mask-image: ${svg(b)}; mask-image: ${svg(b)}; }`).join("\n")}
+`;
+type Agent = { name: string; i: string; c: "personal" | "work" | "bdon" | "app" | "unk" };
+// The README's id table.
+const AGENTS: Record<string, Agent> = {
+  "bdon": { name: "Bdon", i: "person", c: "bdon" },
+  "claude-personal-host": { name: "Claude Personal Host", i: "terminal", c: "personal" },
+  "claude-personal-pod": { name: "Claude Personal Pod", i: "house", c: "personal" },
+  "claude-vidyard-pod": { name: "Claude Vidyard Pod", i: "briefcase", c: "work" },
+  "claire": { name: "Claire", i: "house", c: "personal" },
+};
+const agentOf = (id: string): Agent => AGENTS[id] ?? (/^app:/.test(id) ? { name: id.slice(4), i: "cog", c: "app" } : { name: id, i: "unk", c: "unk" });
+
+/** Days since YYYY-MM-DD as a short age: today, 1d..13d, 2w.., 3mo. */
+function ageOf(d?: string): string {
+  const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(d ?? "");
+  if (!m) return "";
+  const now = new Date(), n = Math.round((Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) - Date.UTC(+m[1], +m[2] - 1, +m[3])) / 864e5);
+  return n <= 0 ? "today" : n < 14 ? `${n}d` : n < 60 ? `${Math.floor(n / 7)}w` : `${Math.floor(n / 30)}mo`;
+}
+type Who = { role: string; thread: string; live: boolean; owner: string; by: string; doing: string; claimed: string; age: string; issues: string[]; done: boolean };
+/** issues: the app's lint for this todo (README, "Who does what"), on every /api/list item. */
+function whoOf(it: { fields?: Record<string, string>; done?: boolean; issues?: string[] }): Who {
+  const issues = it.issues ?? [];
+  const f = it.fields ?? {};
+  return {
+    role: f.role === "lead" || f.role === "worker" ? f.role : "", thread: /^[\w-]+$/.test(f.thread ?? "") ? f.thread : "",
+    live: !!f.doing && !it.done, owner: f.owner ?? "", by: f.by ?? "", doing: f.doing ?? "", claimed: f.claimed ?? "",
+    age: ageOf(f.claimed), issues, done: !!it.done,
+  };
+}
+/** The who lines for a row's hover: owner, who added it, who has it and since when, problems. */
+function whoTip(w: Who): string {
+  const L: string[] = [];
+  if (w.owner) L.push(`Owner: ${agentOf(w.owner).name}`);
+  if (w.by && w.by !== w.owner) L.push(`Added by ${agentOf(w.by).name}`);
+  if (w.live) L.push(`In flight: ${agentOf(w.doing).name}${w.role ? ` as ${w.role}` : ""}${w.claimed ? `, since ${w.claimed} (${w.age})` : ""}`);
+  else if (w.role) L.push(`${w.done ? "Done by" : "Session"}: ${agentOf(w.owner || w.doing).name} as ${w.role}`);
+  if (w.issues.length) L.push(`Problems: ${w.issues.join("; ")}`);
+  return L.join("\n");
+}
+const AgentIcon = ({ a }: { a: Agent }) => <i className="td-wi" data-i={a.i} data-wc={a.c} />;
+
+/** The claim / record chip: agent icon + role icon + age; opens its bb session. A live one glows. */
+function ClaimChip({ w }: { w: Who }) {
+  const nav = useBbNavigate();
+  const a = agentOf(w.live ? w.doing : w.owner || w.doing);
+  const tip = (w.live ? `${a.name}${w.role ? ` (${w.role})` : ""} has this${w.claimed ? ` since ${w.claimed}` : ""}`
+    : `${w.done ? "Done by" : "Session:"} ${a.name}${w.role ? ` (${w.role})` : ""}`) + (w.thread ? "\nOpen its session" : "");
+  const inner = <>
+    <AgentIcon a={a} />
+    {w.role ? <i className="td-wr" data-i={w.role === "lead" ? "crown" : "branch"} data-wc={a.c} /> : null}
+    {w.live && w.age ? <span>{w.age}</span> : null}
+  </>;
+  const cls = `td-claim${w.live ? "" : " rec"}`;
+  return w.thread
+    ? <button type="button" className={cls} data-wc={a.c} data-live={w.live || undefined} title={tip} aria-label="Open its session" onClick={stop(() => nav.toThread(w.thread))}>{inner}</button>
+    : <span className={cls} data-wc={a.c} data-live={w.live || undefined} title={tip}>{inner}</span>;
+}
+
+/** Owner icon (folded into the claim chip when it's the same agent), claim chip, a muted added-by icon, the red !. */
+function WhoRow({ w }: { w: Who }) {
+  const chip = w.live || !!w.role || !!w.thread;
+  const owner = w.owner && !(chip && w.owner === (w.live ? w.doing : w.owner)) ? agentOf(w.owner) : null;
+  const by = w.by && w.by !== w.owner ? agentOf(w.by) : null;
+  if (!owner && !chip && !by && !w.issues.length) return null;
+  return (
+    <span className="inline-flex flex-none items-center gap-[7px] whitespace-nowrap">
+      {owner ? <span className="inline-flex" title={`Owner: ${owner.name}`}><AgentIcon a={owner} /></span> : null}
+      {chip ? <ClaimChip w={w} /> : null}
+      {by ? <span className="td-by" title={`Added by ${by.name}`}><AgentIcon a={by} /></span> : null}
+      {w.issues.length ? <span className="td-lint" title={w.issues.join("\n")}>!</span> : null}
+    </span>
+  );
+}
+
+/** Every who field, labelled: a chat chip's details. Lines match that card's own (label column, then the value). */
+function WhoFull({ w }: { w: Who }) {
+  const line = (k: string, v: React.ReactNode) => <span key={k} className="flex items-center gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">{v}</span></span>;
+  const name = (id: string) => { const a = agentOf(id); return <span className="inline-flex items-center gap-[7px]"><AgentIcon a={a} /><span>{a.name}</span></span>; };
+  const claimer = w.live ? w.doing : w.owner || w.doing;
+  return <>
+    {w.owner ? line("Owner", name(w.owner)) : null}
+    {line("Added by", name(w.by || "bdon"))}
+    {w.live || w.role || w.thread ? line(w.live ? "In flight" : w.done ? "Done by" : "Session", <>
+      <ClaimChip w={w} />
+      {w.owner && w.owner !== claimer ? <span>{agentOf(claimer).name}</span> : null}
+      <span className="text-xs text-muted-foreground">{[w.role, w.live && w.claimed ? `since ${w.claimed}` : ""].filter(Boolean).join(" · ")}</span>
+    </>) : null}
+    {w.issues.length ? <span className="block bg-destructive/10 px-3 py-2 text-destructive">{w.issues.map((x) => <span key={x} className="block">{x}</span>)}</span> : null}
+  </>;
+}
+
 const rowBase = "group flex min-h-10 cursor-pointer items-center gap-2.5 px-2.5 py-1.5 text-sm";
-const tint = (it: { blue?: boolean; doing?: string | null; done?: boolean }) =>
-  it.blue ? "bg-sky-500/20" : it.doing && !it.done ? "bg-emerald-500/20" : "hover:bg-muted/60";
+// In flight is the claim chip's glow, not a green row (green means done on the dashboard).
+const tint = (it: { blue?: boolean }) => it.blue ? "bg-sky-500/20" : "hover:bg-muted/60";
 
 // --- One list (a namespace), with child lists that expand in place. ---
 function TodoList({ path, nav, prefs, setPrefs, depth = 0 }: { path: string; nav: (p: string) => void; prefs: Prefs; setPrefs: (p: Partial<Prefs>) => void; depth?: number }) {
@@ -112,12 +237,12 @@ function TodoList({ path, nav, prefs, setPrefs, depth = 0 }: { path: string; nav
       {items.map((it) => it.child
         ? <NsRow key={it.id} item={it} child={it.child} parent={path} nav={nav} prefs={prefs} setPrefs={setPrefs} depth={depth} drag={dragProps(it.id)} onBlue={() => act(rpc.call("item", { path, id: it.id, blue: !it.blue }))} />
         : (
-          <div key={it.id} className={`${rowBase} ${tint(it)} ${it.done ? "text-muted-foreground" : ""}`} title={it.doing && !it.done ? `In flight: ${it.doing}` : it.by ? `Added by ${it.by}` : undefined}
+          <div key={it.id} className={`${rowBase} ${tint(it)} ${it.done ? "text-muted-foreground" : ""}`} title={whoTip(whoOf(it)) || undefined}
             onClick={() => act(rpc.call("item", { path, id: it.id, done: !it.done }))} {...dragProps(it.id)}>
             {manual ? <Icon name="GripVertical" className="size-3.5 flex-none text-muted-foreground/60" /> : null}
             <Bullet done={it.done} />
             <span className={`min-w-0 flex-1 break-words ${it.done ? "line-through decoration-muted-foreground/50" : ""}`}>{it.text}</span>
-            {(it.doing && !it.done) || it.by ? <span className="flex-none text-xs text-muted-foreground">{it.doing && !it.done ? it.doing : it.by}</span> : null}
+            <WhoRow w={whoOf(it)} />
             {confirming === it.id ? (
               <span className="flex flex-none gap-3 text-xs">
                 <button type="button" className="text-destructive" onClick={stop(() => { setConfirming(null); act(rpc.call("remove", { path, id: it.id })); })}>Delete</button>
@@ -153,10 +278,11 @@ function NsRow({ item, child, nav, prefs, setPrefs, depth, drag, onBlue }: { ite
   };
   return (
     <div>
-      <div className={`${rowBase} relative ${item?.blue ? "bg-sky-500/20" : "bg-muted/70"}`} onClick={toggle} {...drag}>
+      <div className={`${rowBase} relative ${item?.blue ? "bg-sky-500/20" : "bg-muted/70"}`} onClick={toggle} title={item ? whoTip(whoOf(item)) || undefined : undefined} {...drag}>
         <span className="pointer-events-none absolute inset-y-0 left-0 bg-foreground/[.07]" style={{ width: `${pct}%` }} />
         <Icon name="ChevronRight" className={`relative size-3.5 flex-none text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} />
         <button type="button" className="relative min-w-0 flex-1 truncate text-left font-medium hover:underline" onClick={stop(() => nav(child.path))}>{item?.text || child.title}</button>
+        {item ? <span className="relative flex"><WhoRow w={whoOf(item)} /></span> : null}
         <span className="relative flex-none text-xs tabular-nums text-muted-foreground" title={`${child.done} of ${total} done`}>{child.open || ""}</span>
         {onBlue ? (
           <button type="button" title={item?.blue ? "Not a blue" : "Make it a blue"} className={`relative grid size-7 place-items-center text-muted-foreground hover:text-foreground ${item?.blue ? "" : "opacity-0 group-hover:opacity-100"}`}
@@ -330,16 +456,14 @@ function Chip({ host, life }: { host: Host; life: string }) {
   const name = item?.text ?? (isList ? list?.title : null) ?? host.label;
   // The pill shows a word or two; the full name, its list and the rest live in the expanded view.
   const short = String(name ?? "").split(/[:,(—]/)[0].trim().split(/\s+/).slice(0, 2).join(" ");
-  const tone = item ? (item.done ? "done" : item.blue ? "blue" : item.doing ? "doing" : "open") : "open";
-  const bg = tone === "blue" ? "bg-sky-500/20" : tone === "doing" ? "bg-emerald-500/20" : "bg-muted/70";
+  const tone = item ? (item.done ? "done" : item.blue ? "blue" : "open") : "open";
+  const bg = tone === "blue" ? "bg-sky-500/20" : "bg-muted/70";
+  const live = item ? whoOf(item) : null;
   const f = item?.fields ?? {};
   const crumb = list && !isList ? list.title : "";
   const openItems = isList ? (list?.items.filter((i) => !i.done) ?? []) : [];
-  const meta: [string, string][] = item ? ([
-    ["Role", f.role], ["In flight", item.doing && !item.done ? item.doing : ""], ["Added by", item.by ?? ""],
-    ["Done", item.done ? f.done ?? "yes" : ""], 
-  ] as [string, string][]).filter(([, v]) => v) : [];
-  const extra = Object.entries(f).filter(([k]) => !["role", "thread", "done", "doing", "by", "blue", "list"].includes(k));
+  const meta: [string, string][] = item?.done ? [["Done", f.done ?? "yes"]] : [];
+  const extra = Object.entries(f).filter(([k]) => !["owner", "by", "doing", "role", "thread", "claimed", "done", "blue", "list"].includes(k));
   const link = "text-sky-600 hover:underline dark:text-sky-400";
 
   return (
@@ -350,6 +474,7 @@ function Chip({ host, life }: { host: Host; life: string }) {
         {isList ? <Icon name="Folder" className="size-3 flex-none" />
           : <span className={`grid size-3 flex-none place-items-center rounded-[3px] border-[1.5px] ${tone === "done" ? "border-foreground bg-foreground text-background" : "border-muted-foreground/60"}`} />}
         <span className={`max-w-[7.5rem] self-baseline truncate whitespace-nowrap text-left ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{short}</span>
+        {live?.live ? <span className="td-wmk" data-wc={agentOf(live.doing).c}><AgentIcon a={agentOf(live.doing)} /></span> : null}
       </button>
       {open ? (
         <span className="my-1 block space-y-1 border-l-2 border-muted-foreground/30 py-0.5 pl-3 text-sm">
@@ -357,6 +482,7 @@ function Chip({ host, life }: { host: Host; life: string }) {
           {list ? <span className="block"><span className={`font-medium ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{name}</span>{" "}
             <span className="text-xs text-muted-foreground">{isList ? `${openItems.length} open` : crumb ? `in ${crumb}` : ""}</span></span> : null}
           {list && !isList && !item ? <span className="block text-muted-foreground">Not found in this list any more (it may have been reworded or moved).</span> : null}
+          {item ? <WhoFull w={whoOf(item)} /> : null}
           {meta.map(([k, v]) => <span key={k} className="flex gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="min-w-0 break-words">{v}</span></span>)}
           {item?.notes ? <span className="block whitespace-pre-wrap break-words text-muted-foreground">{item.notes}</span> : null}
           {extra.map(([k, v]) => <span key={k} className="flex gap-2"><span className="w-20 flex-none text-muted-foreground">{k}</span><span className="min-w-0 break-words">{v}</span></span>)}
@@ -373,6 +499,9 @@ function Chip({ host, life }: { host: Host; life: string }) {
 }
 
 export default definePluginApp((app) => {
+  const style = document.createElement("style");
+  style.textContent = WHO_CSS;
+  document.head.appendChild(style);
   app.slots.experimental_tab({
     id: "todo", title: "Todo", icon: "ListTodo", tooltip: "Your todo lists",
     context: { kind: "thread" }, availability: "action", params: { path: "" }, layout: "flush",

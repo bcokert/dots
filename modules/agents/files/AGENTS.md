@@ -48,7 +48,7 @@ When talking to me (not when writing as me):
 - Every command or step for me names the computer it runs on (and the folder), right above its block. Never make me guess.
 - When a design gives an agent untrusted input (web pages, email, messages, documents, anything I or my own agents didn't produce) together with a way out (sending, posting, fetching URLs, writing elsewhere), say so explicitly. Private data + untrusted content + outbound reach in one context is how prompt injection does damage.
 - Domain memory: if `~/memory/` exists, each folder in it is one domain's memory (a git repo of plain files: my life's apps and context). Read its `DOMAIN.md` before using it and follow its rules; it's private to that domain.
-- Claim work in the domain's todos before you start it, so anyone (me, or another agent working the same repo in parallel) can see who's doing what. Mark each todo you're taking on as yours and in flight; a multi-part job gets a nested namespace of todos, all claimed up front, even the parts you'll reach later. Check what's already claimed first and leave another agent's work alone. Release or check off each claim the moment it's done or paused. The todo app's README has the format.
+- Claim work in the domain's todos before you start it, so anyone (me, or another agent working the same repo in parallel) can see who's doing what. Claim each todo you're taking on the todo app's way (its README, "Who does what"; the rule lives only there). A multi-part job gets a nested namespace of todos, all claimed up front, even the parts you'll reach later. Check what's already claimed first and leave another agent's work alone. Release or check off each claim the moment it's done or paused.
 - When a session's job is done (finished and checked, nothing waiting on me), its last message ends with one Archive button (one tap archives; anything else I write keeps it). In bb, also run `bb archive-pending mark` first, so the session list shows it's waiting; Archive means `bb thread archive --self`.
 - Never show me a todo's id. Refer to a todo by its name, linked to its page (the todo app's README has the link format).
 - Repo instructions live in `AGENTS.md`, with `CLAUDE.md` as a symlink to it, so every agent reads the same file. Set new repos up that way; convert existing ones when you touch them.
@@ -71,8 +71,8 @@ proposal card, the brief template, models, budgets and handoffs.
    to a fresh session (bb's Handoff) with a summary, instead of running one session forever.
 5. **Child sessions are the exception**: I'd want to open and steer that piece myself, it must outlive the lead, or
    it needs another machine. Spawn it with `--parent-self` and `--lifecycle-owner-thread` set to the lead, brief it
-   the same way, and archive it once its work is reviewed. It records itself on its todo (the todo app's README has
-   the fields).
+   the same way, and archive it once its work is reviewed. It claims its todo the todo app's way (its README, "Who
+   does what").
 6. Check work in proportion: a quick look for simple, confident work; real involvement for decisions, consistency
    and anything critical. Stop and ask when a slice runs past its budget.
 7. Don't overdo it: the todos are the record.
