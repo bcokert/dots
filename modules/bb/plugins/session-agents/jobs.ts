@@ -8,6 +8,9 @@ export type Job = { key: string; name: string; color: string; phases: Phase[] };
 
 const hash = (s: string) => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h; };
 
+/** A job's colour from its name (also used for a lone "phase N", so it keeps its colour when siblings are archived). */
+export const colorFor = (name: string) => PALETTE[hash(name.toLowerCase()) % PALETTE.length]!;
+
 /** Thread id -> its job. Needs >= 2 live top-level sessions in the same project sharing the text before " · ". */
 export const jobsOf = (threads: readonly JobThread[]): Map<string, Job> => {
   const groups = new Map<string, { name: string; list: { t: JobThread; rest: string }[] }>();
@@ -30,7 +33,7 @@ export const jobsOf = (threads: readonly JobThread[]): Map<string, Job> => {
       return { id: t.id, n: m ? Number(m[1]) : idx + 1, title: rest || t.displayTitle, href: t.href };
     });
     phases.sort((a, b) => a.n - b.n);
-    const job: Job = { key, name: g.name, color: PALETTE[hash(g.name.toLowerCase()) % PALETTE.length]!, phases };
+    const job: Job = { key, name: g.name, color: colorFor(g.name), phases };
     for (const p of phases) out.set(p.id, job);
   }
   return out;

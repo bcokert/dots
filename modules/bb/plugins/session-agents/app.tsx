@@ -26,7 +26,8 @@ import {
   useSdk,
   useSettings,
 } from "@get-bb/plugin-sdk/app";
-import { jobsOf, phasedTitle, type Job } from "./jobs";
+import { colorFor, jobsOf, phasedTitle, type Job } from "./jobs";
+import { groupOf, isHealth, layout, pipsFor, type Ctx, type Meta } from "./derive";
 
 const svg = (body: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${body}</svg>`)}")`;
@@ -43,8 +44,10 @@ const BRANCH = svg("<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='
 // A small cog: a subagent is machinery working for its lead, not an agent of its own.
 const COG = svg("<circle cx='12' cy='12' r='3.2' stroke-width='2.6'/><path d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1' stroke-width='2.8'/>");
 
-// Two linked rings: marks a session as one phase of a job.
-const LINK = svg("<path d='M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7'/><path d='M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7'/>");
+// Health: a pulse line. Priority: a stop octagon (blocking) and a zap (urgent).
+const PULSE = svg("<path d='M2 12h4l3-8 5 16 3-8h5'/>");
+const OCTAGON = svg("<path d='M8 2.5h8L21.5 8v8L16 21.5H8L2.5 16V8z'/><path d='M12 7.5v5.5M12 16.2v.1' stroke-width='2.8'/>");
+const ZAP = svg("<path d='M13 2.5 4.5 13.5H12l-1 8 8.5-11H12z'/>");
 
 const CSS = `
 [data-sa-agent] > * { display: none !important; }
@@ -91,15 +94,36 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 .sa-sub::before { content: ""; width: 11px; height: 11px; flex: none; background-color: var(--sa-agent, currentColor);
   -webkit-mask: ${COG} center / contain no-repeat; mask: ${COG} center / contain no-repeat; }
 .sa-sub-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-/* Jobs: phases of one job share a faint tint, a link mark with the phase number, and light up together on hover. */
-[data-sa-job] { background-color: color-mix(in srgb, var(--sa-job) 9%, transparent) !important; border-radius: 6px; transition: background-color .12s; }
-[data-sa-job][data-sa-hot] { background-color: color-mix(in srgb, var(--sa-job) 22%, transparent) !important; }
-.sa-phase { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; flex: none; font-size: 10px; line-height: 1; font-weight: 600; color: var(--sa-job); }
-.sa-phase::before { content: ""; width: 10px; height: 10px; background-color: currentColor;
-  -webkit-mask: ${LINK} center / contain no-repeat; mask: ${LINK} center / contain no-repeat; }
-.sa-phase[data-solo] { color: var(--muted-foreground, gray); font-weight: 500; opacity: .8; }
-.sa-phase[data-solo]::before { display: none; }
-.sa-phase[data-solo]::after { content: "P"; order: -1; }
+/* Jobs: phases of one job light up together on hover (flat, no radius); the pips carry the job's colour. */
+[data-sa-job][data-sa-hot] { background-color: color-mix(in srgb, var(--sa-job) 14%, transparent) !important; }
+/* Phase pips: one small square per phase in the job's colour. Past phases filled, this one open and glowing. */
+.sa-phase { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; flex: none; }
+.sa-pp { width: 7px; height: 7px; box-sizing: border-box; border-radius: 1px; border: 1.5px solid var(--sa-job); }
+.sa-pp[data-s="done"] { background: var(--sa-job); }
+.sa-pp[data-s="now"] { box-shadow: 0 0 7px 1px var(--sa-job); }
+.sa-pp[data-s="next"] { opacity: .3; }
+/* Structure: rows are reordered with CSS order (never moved in the DOM), nested by padding, and a group's first row
+   carries its header as ::before. */
+[data-sa-section] { display: flex !important; flex-direction: column; }
+[data-sa-gh]::before { content: attr(data-sa-gh); display: block; margin: 8px 8px 2px; padding-left: 6px; border-left: 2px solid var(--sa-g, gray);
+  font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted-foreground, gray); }
+[data-sa-depth] [data-sidebar-rename-row] { padding-left: calc(8px + var(--sa-depth) * 14px) !important; }
+.sa-spawn { flex: none; margin-right: 4px; font-size: 11px; line-height: 1; color: var(--muted-foreground, gray); opacity: .8; cursor: default; pointer-events: auto; }
+/* Health: a red pulse in place of the agent icon. */
+[data-sa-health] > * { display: none !important; }
+[data-sa-health]::before { content: ""; width: 14px; height: 14px; flex: none; background-color: var(--sa-agent);
+  -webkit-mask: var(--sa-icon) center / contain no-repeat; mask: var(--sa-icon) center / contain no-repeat; }
+[data-provider-icon-tint][data-sa-health]::before { width: 16px; height: 16px; }
+[data-sa-health] { --sa-agent: #e5484d; --sa-icon: ${PULSE}; }
+[data-sa-health][data-sa-agent] { --sa-agent: #e5484d; --sa-icon: ${PULSE}; }
+/* Priority: a flat full-width tint and an icon, until archived or cleared. */
+[data-sa-prio="blocking"] { --sa-p: light-dark(#d03a3a, #ff6b6b); }
+[data-sa-prio="urgent"] { --sa-p: light-dark(#c26a05, #f0b44c); }
+[data-sa-prio] { background-color: color-mix(in srgb, var(--sa-p) 15%, transparent) !important; border-radius: 0 !important; }
+.sa-prio { width: 13px; height: 13px; flex: none; margin-left: 6px; align-self: center; pointer-events: auto; background-color: var(--sa-p);
+  -webkit-mask: var(--sa-prio-icon) center / contain no-repeat; mask: var(--sa-prio-icon) center / contain no-repeat; }
+[data-sa-prio="blocking"] .sa-prio { --sa-prio-icon: ${OCTAGON}; }
+[data-sa-prio="urgent"] .sa-prio { --sa-prio-icon: ${ZAP}; }
 /* Phased titles show only the job name: the original text is zeroed and the short one is drawn from the attribute, so
    React's text node is never touched and the ellipsis still works. */
 [data-sa-short] { font-size: 0 !important; }
@@ -177,6 +201,25 @@ function SessionAgents() {
   const projectNames = useRef(new Map<string, string>());
   const bump = useRef<() => void>(() => undefined);
   const jobs = useRef(new Map<string, Job>());
+  const metas = useRef(new Map<string, Meta>());
+  const ids = threads.filter((t) => !t.isArchived).map((t) => t.id).sort().join(" ");
+  // Tags from `bb session-agents tag` (group, spawner, priority). Polled: there's no event for another session's tag.
+  useEffect(() => {
+    let stopped = false;
+    const load = async () => {
+      const list = ids ? ids.split(" ") : [];
+      try {
+        const res = await sdk.threads.experimental_listPluginMetadata({ threadIds: list });
+        if (stopped) return;
+        const next = new Map<string, Meta>();
+        for (const t of res.threads) if (t.metadata && Object.keys(t.metadata).length) next.set(t.threadId, t.metadata as Meta);
+        if (JSON.stringify([...next]) !== JSON.stringify([...metas.current])) { metas.current = next; bump.current(); }
+      } catch { /* next tick */ }
+    };
+    void load();
+    const timer = window.setInterval(load, 15_000);
+    return () => { stopped = true; clearInterval(timer); };
+  }, [sdk, ids]);
   useEffect(() => {
     roles.current = new Map(threads.map((t) => [t.id, t]));
     jobs.current = jobsOf(threads);
@@ -362,15 +405,22 @@ function SessionAgents() {
         if (!row || !titleEl) return;
         const job = jobs.current.get(id);
         const ph = phasedTitle(titleEl.title || titleEl.textContent || "");
-        // A phase of a live job gets the tint + link mark; a lone phase N>1 a small muted "P N"; a lone phase 1 nothing.
+        // A phase of a live job gets pips in the job's colour; a lone phase N>1 gets N muted pips; a lone phase 1 nothing.
         const n = job ? job.phases.find((p) => p.id === id)!.n : ph && ph.n > 1 ? ph.n : 0;
         if (!n) return;
         if (job) { row.dataset.saJob = job.key; row.style.setProperty("--sa-job", job.color); }
+        const pips = pipsFor(job ? job.phases.map((p) => p.n) : null, n);
         let m = titleEl.parentElement!.querySelector<HTMLElement>(":scope > .sa-phase");
         if (!m) { m = document.createElement("span"); m.className = "sa-phase"; titleEl.after(m); }
-        if (m.textContent !== String(n)) m.textContent = String(n);
-        if (job) delete m.dataset.solo; else m.dataset.solo = "";
-        m.title = job ? `${job.name}: phase ${n} of ${job.phases.length} sessions` : `${ph!.name}: phase ${n}`;
+        const sig = pips.join(",");
+        if (m.dataset.sig !== sig) {
+          m.dataset.sig = sig;
+          m.replaceChildren(...pips.map((s) => Object.assign(document.createElement("span"), { className: "sa-pp" })));
+          pips.forEach((s, i) => ((m!.children[i] as HTMLElement).dataset.s = s));
+        }
+        m.style.setProperty("--sa-job", job ? job.color : colorFor(ph!.name));
+        m.title = job ? `${job.name}: phase ${n} of ${pips.length}` : `${ph!.name}: phase ${n}`;
+        m.setAttribute("aria-label", m.title);
         seen.add(m);
       };
       for (const a of document.querySelectorAll<HTMLElement>("a[data-sidebar-thread-id]")) {
@@ -412,6 +462,88 @@ function SessionAgents() {
       const t = el.closest<HTMLElement>(".bb-thread-title");
       if (t?.dataset.saTitled !== undefined) { t.removeAttribute("title"); delete t.dataset.saTitled; }
     };
+    // Session list structure from the tags (derive.ts): the context it needs, then the painting.
+    const ctx: Ctx = {
+      thread: (id) => roles.current.get(id),
+      meta: (id) => metas.current.get(id),
+      jobMates: (id) => jobs.current.get(id)?.phases.map((p) => p.id) ?? [],
+    };
+    const groupFor = (id: string) => groupOf(id, ctx);
+    const hue = (s: string) => { let h = 0; for (const c of s.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+    const PRIO_TIP = { blocking: "Blocking: the session that spawned this can't proceed without it", urgent: "Urgent: focus here first" };
+    const idOfLi = (li: HTMLElement) => li.querySelector("a[href*='/threads/']")?.getAttribute("href")?.match(/\/threads\/([^/?#]+)/)?.[1];
+    const paintStructure = () => {
+      // Priority tint + icon, spawner glyph: on sidebar rows and the phone's recent list.
+      const decorate = (id: string, row: HTMLElement, titleEl: HTMLElement | null, placed: { spawner: string | null } | undefined) => {
+        const m = metas.current.get(id);
+        const prio = m?.priority === "blocking" || m?.priority === "urgent" ? m.priority : null;
+        if (prio) row.dataset.saPrio = prio; else delete row.dataset.saPrio;
+        row.querySelector(":scope .sa-prio")?.remove();
+        if (prio && titleEl) {
+          const tip = m?.reason ? `${prio === "blocking" ? "Blocking" : "Urgent"}: ${m.reason}` : PRIO_TIP[prio];
+          const el = Object.assign(document.createElement("span"), { className: "sa-prio", title: tip });
+          el.setAttribute("aria-label", tip);
+          (titleEl.parentElement!.querySelector(":scope > .sa-phase") ?? titleEl).after(el);
+        }
+        const sp = placed?.spawner ?? null;
+        const parentEl = titleEl?.parentElement;
+        const glyph = parentEl?.querySelector<HTMLElement>(":scope > .sa-spawn");
+        const spTitle = sp ? roles.current.get(sp)?.displayTitle : undefined;
+        if (!sp || !spTitle || !parentEl || !titleEl) { glyph?.remove(); return; }
+        const tip = `Spawned by ${spTitle}`;
+        if (glyph && glyph.title === tip) return;
+        glyph?.remove();
+        const g = Object.assign(document.createElement("span"), { className: "sa-spawn", textContent: "↳", title: tip });
+        g.setAttribute("aria-label", tip);
+        parentEl.prepend(g);
+      };
+      const sections = new Map<HTMLElement, { id: string; item: HTMLElement; row: HTMLElement }[]>();
+      for (const a of document.querySelectorAll<HTMLElement>("a[data-sidebar-thread-id]")) {
+        const row = a.closest<HTMLElement>("[data-sidebar-rename-row]");
+        const item = row?.closest<HTMLElement>("[data-sidebar-windowed-item]");
+        const sec = item?.parentElement;
+        if (!row || !item || !sec) continue;
+        sections.set(sec, [...(sections.get(sec) ?? []), { id: a.dataset.sidebarThreadId!, item, row }]);
+      }
+      const touched = new Set<HTMLElement>();
+      for (const [sec, list] of sections) {
+        const oneProject = new Set(list.map((r) => roles.current.get(r.id)?.projectId)).size === 1;
+        const placed = oneProject ? layout(list.map((r) => r.id), ctx) : new Map();
+        if (oneProject) {
+          sec.dataset.saSection = "";
+          // Anything in the list that isn't a row (spacers, "show more") keeps its place relative to the rows.
+          let seenRow = false;
+          for (const c of Array.from(sec.children) as HTMLElement[]) {
+            if (list.some((r) => r.item === c)) { seenRow = true; continue; }
+            c.style.order = seenRow ? "999999" : "-1"; c.dataset.saOrder = "";
+            touched.add(c);
+          }
+        }
+        for (const { id, item, row } of list) {
+          const p = placed.get(id);
+          touched.add(item);
+          if (p) {
+            item.style.order = String(p.order); item.dataset.saOrder = "";
+            if (p.depth) { item.dataset.saDepth = ""; item.style.setProperty("--sa-depth", String(p.depth)); } else { delete item.dataset.saDepth; item.style.removeProperty("--sa-depth"); }
+            if (p.header) {
+              item.dataset.saGh = p.header;
+              item.style.setProperty("--sa-g", isHealth(p.header) ? "#e5484d" : `hsl(${hue(p.header)} 38% 52%)`);
+            } else { delete item.dataset.saGh; item.style.removeProperty("--sa-g"); }
+          } else clearItem(item);
+          decorate(id, row, row.querySelector<HTMLElement>(".bb-thread-title"), p);
+        }
+      }
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-order], [data-sa-gh], [data-sa-depth]")) if (!touched.has(el)) clearItem(el);
+      for (const sec of document.querySelectorAll<HTMLElement>("[data-sa-section]")) if (!sections.has(sec)) delete sec.dataset.saSection;
+      for (const li of document.querySelectorAll<HTMLElement>("[data-root-compose-mobile-recents] li")) {
+        const id = idOfLi(li);
+        if (id) decorate(id, li, li.querySelector<HTMLElement>(".bb-thread-title"), undefined);
+      }
+    };
+    const clearItem = (el: HTMLElement) => {
+      el.style.removeProperty("order"); el.style.removeProperty("--sa-depth"); el.style.removeProperty("--sa-g");
+      delete el.dataset.saOrder; delete el.dataset.saGh; delete el.dataset.saDepth;
+    };
     const paint = () => {
       frame = 0;
       if (stopped) return;
@@ -426,6 +558,8 @@ function SessionAgents() {
       }
       for (const [id, icon] of rows) {
         if (!icon) continue;
+        const health = isHealth(groupFor(id));
+        if (health !== (icon.dataset.saHealth !== undefined)) { if (health) icon.dataset.saHealth = ""; else delete icon.dataset.saHealth; }
         if (!threadEnv.has(id)) {
           if (Date.now() - (missedAt.get(id) ?? 0) >= RETRY_MS) void resolve(id);
           continue;
@@ -439,7 +573,7 @@ function SessionAgents() {
         const team = r0?.role === "lead" && ((subs.get(id)?.list.length ?? 0) > 0
           || [...roles.current.values()].some((t) => t.parentThreadId === id));
         const r = r0 && (r0.role === "worker" || team) ? r0 : null;
-        const tip = r0 ? `${agent.name} · ${r0.tip}` : agent.name;
+        const tip = (r0 ? `${agent.name} · ${r0.tip}` : agent.name) + (health ? " · Health" : "");
         if (icon.dataset.saAgent !== agent.kind || icon.dataset.saRole !== (r?.role ?? "") || icon.title !== tip) {
           icon.dataset.saAgent = agent.kind;
           if (r) icon.dataset.saRole = r.role; else delete icon.dataset.saRole;
@@ -449,6 +583,7 @@ function SessionAgents() {
       }
       paintSubs();
       paintJobs();
+      paintStructure();
       shorten();
       relabel();
       observer.observe(document.body, { childList: true, subtree: true, characterData: true });
@@ -479,7 +614,11 @@ function SessionAgents() {
       clearInterval(subTimer);
       document.removeEventListener("pointerover", hover);
       document.removeEventListener("pointerleave", hover, true);
-      for (const el of document.querySelectorAll(".sa-pips, [data-sa-block], .sa-phase")) el.remove();
+      for (const el of document.querySelectorAll(".sa-pips, [data-sa-block], .sa-phase, .sa-prio, .sa-spawn")) el.remove();
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-order], [data-sa-gh], [data-sa-depth]")) clearItem(el);
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-section]")) delete el.dataset.saSection;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-prio]")) delete el.dataset.saPrio;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-health]")) delete el.dataset.saHealth;
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-job]")) { delete el.dataset.saJob; delete el.dataset.saHot; el.style.removeProperty("--sa-job"); }
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-short]")) unshorten(el);
       style.remove();
