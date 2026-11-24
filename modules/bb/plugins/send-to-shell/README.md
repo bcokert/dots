@@ -12,6 +12,14 @@ press Enter or don't.
   and sends it as a bracketed paste, so multi-line blocks arrive as one edit. Needs a shell with bracketed
   paste (zsh, bash 5.1+, fish); in plain `sh`, newlines in a multi-line block would run.
 - `console` blocks send only their `$ ` lines, without the `$ `.
+- **Open the files it mentions.** Under the block, one small "Open <file>" link per file path in the command
+  (up to 4): absolute (`/tmp/x.sh`), `~/...`, or relative (`host/provision.sh`, `./a.log`), so you can read a
+  script before you run it. It opens bb's own file preview, on desktop and phone. Skipped: flags (and their
+  `=value`), URLs, globs, `$vars`, directories, comments, and paths with spaces. Relative paths resolve against
+  the thread's workspace (a `cd` earlier in the command isn't followed); `~` is guessed from it (`/home/<user>`),
+  so on an odd layout those links report an error instead of opening. Paths under `.bb/thread-storage/<thread>`
+  open as thread files, paths inside the workspace as workspace files, the rest as files on the thread's machine.
+  Extraction lives in `paths.ts`; check it with `node paths.test.ts`.
 - Frontend only: it uses your own bb session. No settings, no storage, no network.
 
 Install: `./install.sh bb` from the dots root (builds and installs every plugin in `modules/bb/plugins/`).

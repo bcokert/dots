@@ -12,6 +12,8 @@ import {
   type ExperimentalCodeFenceRendererProps,
 } from "@get-bb/plugin-sdk/app";
 
+import { baseName, extractPaths, resolvePath } from "./paths.ts";
+
 const SHELL_LANGUAGES = ["bash", "sh", "shell", "zsh", "console"];
 
 /**
@@ -107,14 +109,77 @@ function ShellFence({ code, language, status, message, Original }: ExperimentalC
     </button>
   );
   const slot = useToolbarSlot(status === "closed");
+  const paths = status === "closed" ? extractPaths(code, language).slice(0, MAX_PATH_LINKS) : [];
   return (
     <div ref={slot.ref}>
       <Original />
+      {paths.length > 0 ? <PathLinks paths={paths} threadId={message.threadId} /> : null}
       {status !== "closed" ? null : slot.node ? (
         createPortal(button, slot.node)
       ) : (
         <div className="-mt-1 mb-2 flex justify-end">{button}</div>
       )}
+    </div>
+  );
+}
+
+const MAX_PATH_LINKS = 4;
+
+/**
+ * "Open <file>" under the block for each file the command mentions, so you can read a script before running it.
+ * Opens bb's own file preview (the file-diff plugin's opener, if a file has changes). Looking up the thread's
+ * machine and folder waits for the click, so a block you never touch costs nothing.
+ */
+function PathLinks({ paths, threadId }: { paths: string[]; threadId: string }) {
+  const sdk = useSdk();
+  const navigate = useBbNavigate();
+  const [error, setError] = useState<string | null>(null);
+
+  async function open(raw: string) {
+    setError(null);
+    try {
+      const thread = await sdk.threads.get({ threadId });
+      const environmentId = "environmentId" in thread ? thread.environmentId : null;
+      const environment = environmentId ? await sdk.environments.get({ environmentId }) : null;
+      const target = resolvePath(raw, environment?.path ?? null);
+      if (!target) throw new Error(`can't resolve ${raw}`);
+      let opened = false;
+      if (target.kind === "thread-storage") {
+        opened = navigate.experimental_openFilePreview({ target, location: null });
+      } else if (target.kind === "workspace") {
+        if (!environmentId) throw new Error("this thread has no workspace");
+        opened = navigate.experimental_openFilePreview({
+          target: { kind: "workspace", environmentId, path: target.path },
+          location: null,
+        });
+      } else {
+        if (!environment) throw new Error("this thread has no machine");
+        opened = navigate.experimental_openFilePreview({
+          target: { kind: "host", hostId: environment.hostId, path: target.path },
+          location: null,
+        });
+      }
+      if (!opened) throw new Error(`bb wouldn't open ${raw}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : String(cause));
+    }
+  }
+
+  return (
+    <div className="-mt-1 mb-2 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+      {paths.map((raw) => (
+        <button
+          key={raw}
+          type="button"
+          onClick={() => open(raw)}
+          title={`Open ${raw}`}
+          className="inline-flex max-w-full cursor-pointer items-center gap-1 text-muted-foreground transition-colors hover:text-foreground hover:underline"
+        >
+          <Icon name="FileText" fallback="Terminal" className="size-3 shrink-0" aria-hidden />
+          <span className="truncate">Open {baseName(raw)}</span>
+        </button>
+      ))}
+      {error ? <span className="text-destructive">{error}</span> : null}
     </div>
   );
 }
