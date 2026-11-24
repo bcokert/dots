@@ -1,9 +1,10 @@
 // archive-pending: rows of sessions marked done (bb archive-pending mark) get an amber archive mark after the title
-// and a dimmed title, in the sidebar and in the phone's "Recent" list, until they're archived or talked to again.
+// and a dimmed title, in the sidebar and in the phone's "Recent" list, until they're archived or talked to again (rule.ts).
 // bb's row menu already has Archive, so there's no second one here. bb has no slot for row styling that's on by
 // default (thread row metadata needs an experiment and a setting), so this decorates bb's own DOM, like
 // session-agents, and undoes it all when the plugin unloads. If bb's markup changes, rows just look normal.
 import { useEffect, useRef } from "react";
+import { isPending, latestUserAt } from "./rule.ts";
 import { definePluginApp, experimental_useSidebarThreads, useSdk } from "@get-bb/plugin-sdk/app";
 
 const ARCHIVE = `url("data:image/svg+xml,${encodeURIComponent(
@@ -16,7 +17,7 @@ const CSS = `
   background-color: light-dark(#b7791f, #f0b44c);
   -webkit-mask: ${ARCHIVE} center / contain no-repeat; mask: ${ARCHIVE} center / contain no-repeat; }
 `;
-const POLL_MS = 20_000;
+const POLL_MS = 60_000; // backstop only: status changes below trigger the real refreshes
 
 function ArchivePending() {
   const sdk = useSdk();
@@ -35,13 +36,21 @@ function ArchivePending() {
       try {
         const res = await sdk.threads.experimental_listPluginMetadata({ threadIds: list });
         if (stopped) return;
-        pending.current = new Set(res.threads.filter((t) => t.metadata?.pending === true).map((t) => t.threadId));
+        // Only the few marked threads need their latest user-message time; the rule decides (rule.ts).
+        const marked = res.threads.filter((t) => t.metadata?.pending === true);
+        const shown = await Promise.all(marked.map(async (t) => {
+          const h = await sdk.threads.timeline({ threadId: t.threadId, segmentLimit: "50" });
+          return isPending(t.metadata, latestUserAt(h), false) ? t.threadId : null;
+        }));
+        if (stopped) return;
+        pending.current = new Set(shown.filter((x): x is string => x !== null));
         repaint.current();
       } catch { /* next tick */ }
     };
     void load();
+    const soon = window.setTimeout(load, 3000); // a status change can land just before the mark is written
     const timer = window.setInterval(load, POLL_MS);
-    return () => { stopped = true; clearInterval(timer); };
+    return () => { stopped = true; clearInterval(timer); clearTimeout(soon); };
   }, [sdk, ids, sig]);
 
   useEffect(() => {

@@ -2,14 +2,23 @@
 //   bb archive-pending mark    the agent, at the end of a finished job (its last message offers Archive / Keep)
 //   bb archive-pending clear   take the mark off (Keep)
 //   bb archive-pending status  is this session marked?
-// The mark is this plugin's metadata on the thread ({ pending: true, at }). Any new turn clears it (Bdon kept
-// talking, so the job isn't over; the agent marks again when it is), and so does archiving or unarchiving.
+// The mark is this plugin's metadata on the thread ({ pending: true, at }), and whether it counts is derived from
+// state (rule.ts): `at` must be later than the session's latest user message, and the session not archived. So a new
+// turn "clears" it without any event handler, and a mark made mid-turn survives late or duplicate events.
+// Unarchiving is the one event we act on (a deliberate act, not racing with a mark): it drops the mark.
 import { PluginCliError, cliCommand, defineCli, type BbPluginApi } from "@get-bb/plugin-sdk";
+import { isPending, latestUserAt } from "./rule.ts";
 
 export default async function plugin(bb: BbPluginApi) {
-  const isMarked = async (threadId: string) => (await bb.sdk.threads.getPluginMetadata({ threadId }))?.pending === true;
+  const isMarked = async (threadId: string) => {
+    const meta = await bb.sdk.threads.getPluginMetadata({ threadId });
+    if (meta?.pending !== true) return false;
+    const [history, got] = await Promise.all([bb.sdk.threads.timeline({ threadId, segmentLimit: "50" }), bb.sdk.threads.get({ threadId })]);
+    const t = ((got as { thread?: { archivedAt?: unknown } }).thread ?? got) as { archivedAt?: unknown };
+    return isPending(meta, latestUserAt(history.rows), t.archivedAt != null);
+  };
   const clear = async (threadId: string) => {
-    if (await isMarked(threadId).catch(() => false)) await bb.sdk.threads.updatePluginMetadata({ threadId, remove: ["pending", "at"] });
+    await bb.sdk.threads.updatePluginMetadata({ threadId, remove: ["pending", "at"] });
   };
   const target = (thread: string | undefined, ctx: { threadId?: string }) => {
     const id = thread || ctx.threadId;
@@ -24,7 +33,7 @@ export default async function plugin(bb: BbPluginApi) {
       summary: "Mark a finished session as waiting to be archived (shown in the session list)",
       commands: {
         mark: cliCommand({
-          summary: "Mark this session done: its row shows an archive mark until it's archived or the next turn",
+          summary: "Mark this session done: its row shows an archive mark until it's archived or the user writes to it again",
           options: { thread },
           async run({ options }, ctx) {
             const threadId = target(options.thread, ctx);
@@ -53,7 +62,5 @@ export default async function plugin(bb: BbPluginApi) {
     }),
   );
 
-  for (const event of ["thread.active", "thread.archived", "thread.unarchived"] as const) {
-    bb.events.on(event, ({ thread: t }) => clear(t.id).catch((e) => bb.log.warn(`archive-pending: clearing ${t.id} failed: ${e}`)));
-  }
+  bb.events.on("thread.unarchived", ({ thread: t }) => clear(t.id).catch((e) => bb.log.warn(`archive-pending: clearing ${t.id} failed: ${e}`)));
 }
