@@ -343,13 +343,13 @@ function Chip({ host, life }: { host: Host; life: string }) {
   const link = "text-sky-600 hover:underline dark:text-sky-400";
 
   return (
-    <span className={`max-w-full align-middle ${open ? "block" : "inline-block"}`}>
+    <span className={`max-w-full align-baseline ${open ? "block" : "inline-block"}`}>
       <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(!open); }}
         title={failed ? "Couldn't load this todo; click for the link" : `${name}${isList ? ` · ${openItems.length} open` : crumb ? ` · in ${crumb}` : ""}`}
-        className={`inline-flex max-w-full cursor-pointer items-center gap-1 rounded-full px-1.5 py-px align-middle text-[0.8em] leading-tight ${bg} ${tone === "done" ? "text-muted-foreground" : ""}`}>
+        className={`inline-flex max-w-full cursor-pointer items-center gap-1 rounded-full px-1.5 py-px align-baseline text-[0.8em] leading-tight ${bg} ${tone === "done" ? "text-muted-foreground" : ""}`}>
         {isList ? <Icon name="Folder" className="size-3 flex-none" />
           : <span className={`grid size-3 flex-none place-items-center rounded-[3px] border-[1.5px] ${tone === "done" ? "border-foreground bg-foreground text-background" : "border-muted-foreground/60"}`}>{tone === "done" ? <Icon name="Check" className="size-2.5" /> : null}</span>}
-        <span className={`max-w-[7.5rem] truncate whitespace-nowrap text-left ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{short}</span>
+        <span className={`max-w-[7.5rem] self-baseline truncate whitespace-nowrap text-left ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{short}</span>
       </button>
       {open ? (
         <span className="my-1 block space-y-1 border-l-2 border-muted-foreground/30 py-0.5 pl-3 text-sm">
