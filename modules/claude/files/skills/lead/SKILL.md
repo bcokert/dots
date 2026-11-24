@@ -64,8 +64,12 @@ When the report comes back, it's evidence, not proof: check in proportion.
 Give tokens as the usage panel counts them, and a time box in tool calls, since a subagent can't see its own
 token spend. Reference points:
 
-- One Sonnet subagent building a UI feature with screenshots: ~80k tokens, ~30 tool calls, ~5 min.
-- The same kind of work as a child session: 0.3 to 1.9M tokens. The overhead is the session itself, which is why
+- A Sonnet subagent building a UI slice with desktop and phone Playwright screenshots: 125k to 170k tokens, 35
+  to 75 tool calls (Release 2 of the life dashboard, 5 slices). Tight briefs ("grep + targeted reads") didn't get
+  one under ~125k.
+- A data script with tests and a mapping that takes judgment: ~135k.
+- A small server change checked with curl: ~50k.
+- A UI slice as a child session: 0.3 to 1.9M tokens. The overhead is the session itself, which is why
   subagents are the default.
 
 Past budget: stop and ask, with where it stands.
