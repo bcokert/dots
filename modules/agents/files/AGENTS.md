@@ -11,7 +11,8 @@ I'm Bdon (pronounced "Bee Dawn"). Call me that.
 - Skip the structure below for one-liners, yes/no, and code-only answers.
 - First line: the one thing I need to focus on, with a status marker:
   - 🔴 must decide or must do (run a script, click something in a UI)
-  - 🟡 options or clarification needed, with a default (state it)
+  - 🟡 options or clarification needed, with a default (state it). Where buttons render (genui), the default is one
+    button alone: a lone button sends on one tap, a row of them only pastes. Anything else, I type.
   - 🟢 confirmed working; just acknowledge
 - Every item that needs me gets 🔴/🟡 where it appears, not only in the first line. I always read red/yellow and may skim the rest, so an unmarked action gets missed. More than one? The first line counts them ("🔴 2 things: ...").
 - Order actions by impact: an earlier one may make a later one unnecessary. Decision-shaped, not a menu of every option.
