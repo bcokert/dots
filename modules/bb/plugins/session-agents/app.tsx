@@ -26,7 +26,7 @@ import {
   useSdk,
   useSettings,
 } from "@get-bb/plugin-sdk/app";
-import { jobsOf, type Job } from "./jobs";
+import { jobsOf, phasedTitle, type Job } from "./jobs";
 
 const svg = (body: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${body}</svg>`)}")`;
@@ -97,6 +97,13 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 .sa-phase { display: inline-flex; align-items: center; gap: 2px; margin-left: 6px; flex: none; font-size: 10px; line-height: 1; font-weight: 600; color: var(--sa-job); }
 .sa-phase::before { content: ""; width: 10px; height: 10px; background-color: currentColor;
   -webkit-mask: ${LINK} center / contain no-repeat; mask: ${LINK} center / contain no-repeat; }
+.sa-phase[data-solo] { color: var(--muted-foreground, gray); font-weight: 500; opacity: .8; }
+.sa-phase[data-solo]::before { display: none; }
+.sa-phase[data-solo]::after { content: "P"; order: -1; }
+/* Phased titles show only the job name: the original text is zeroed and the short one is drawn from the attribute, so
+   React's text node is never touched and the ellipsis still works. */
+[data-sa-short] { font-size: 0 !important; }
+[data-sa-short]::before { content: attr(data-sa-short); display: inline-block; max-width: 100%; vertical-align: top; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--sa-fs); line-height: var(--sa-lh); }
 .sa-job-link { background: none; border: 0; padding: 0; cursor: pointer; color: inherit; text-align: left; font: inherit; }
 .sa-job-link:hover { text-decoration: underline; }
 .sa-sub-model { flex: none; opacity: .6; font-size: 10px; }
@@ -352,15 +359,18 @@ function SessionAgents() {
     const paintJobs = () => {
       const seen = new Set<HTMLElement>();
       const mark = (id: string, row: HTMLElement | null | undefined, titleEl: HTMLElement | null | undefined) => {
+        if (!row || !titleEl) return;
         const job = jobs.current.get(id);
-        if (!row || !job || !titleEl) return;
-        const n = job.phases.find((p) => p.id === id)!.n;
-        row.dataset.saJob = job.key;
-        row.style.setProperty("--sa-job", job.color);
+        const ph = phasedTitle(titleEl.title || titleEl.textContent || "");
+        // A phase of a live job gets the tint + link mark; a lone phase N>1 a small muted "P N"; a lone phase 1 nothing.
+        const n = job ? job.phases.find((p) => p.id === id)!.n : ph && ph.n > 1 ? ph.n : 0;
+        if (!n) return;
+        if (job) { row.dataset.saJob = job.key; row.style.setProperty("--sa-job", job.color); }
         let m = titleEl.parentElement!.querySelector<HTMLElement>(":scope > .sa-phase");
         if (!m) { m = document.createElement("span"); m.className = "sa-phase"; titleEl.after(m); }
         if (m.textContent !== String(n)) m.textContent = String(n);
-        m.title = `${job.name}: phase ${n} of ${job.phases.length} sessions`;
+        if (job) delete m.dataset.solo; else m.dataset.solo = "";
+        m.title = job ? `${job.name}: phase ${n} of ${job.phases.length} sessions` : `${ph!.name}: phase ${n}`;
         seen.add(m);
       };
       for (const a of document.querySelectorAll<HTMLElement>("a[data-sidebar-thread-id]")) {
@@ -377,6 +387,30 @@ function SessionAgents() {
           ?? el.querySelector("a[href*='/threads/']")?.getAttribute("href")?.match(/\/threads\/([^/?#]+)/)?.[1];
         if (!id || !jobs.current.has(id)) { delete el.dataset.saJob; delete el.dataset.saHot; el.style.removeProperty("--sa-job"); }
       }
+    };
+    // Phased titles ("<job> · phase N") show only the job name; the full title stays as the tooltip and in bb's data.
+    const shorten = () => {
+      for (const t of document.querySelectorAll<HTMLElement>(".bb-thread-title")) {
+        const el = t.firstElementChild instanceof HTMLElement ? t.firstElementChild : t;
+        const full = el.textContent ?? "";
+        const ph = phasedTitle(full);
+        if (!ph) { if (el.dataset.saShort !== undefined) unshorten(el); continue; }
+        if (el.dataset.saShort === ph.name && el.dataset.saFull === full) continue;
+        if (el.dataset.saShort === undefined) {
+          const cs = getComputedStyle(el);
+          el.style.setProperty("--sa-fs", cs.fontSize);
+          el.style.setProperty("--sa-lh", cs.lineHeight);
+        }
+        el.dataset.saShort = ph.name;
+        el.dataset.saFull = full;
+        if (!t.title) { t.title = full; t.dataset.saTitled = ""; }
+      }
+    };
+    const unshorten = (el: HTMLElement) => {
+      delete el.dataset.saShort; delete el.dataset.saFull;
+      el.style.removeProperty("--sa-fs"); el.style.removeProperty("--sa-lh");
+      const t = el.closest<HTMLElement>(".bb-thread-title");
+      if (t?.dataset.saTitled !== undefined) { t.removeAttribute("title"); delete t.dataset.saTitled; }
     };
     const paint = () => {
       frame = 0;
@@ -415,6 +449,7 @@ function SessionAgents() {
       }
       paintSubs();
       paintJobs();
+      shorten();
       relabel();
       observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     };
@@ -446,6 +481,7 @@ function SessionAgents() {
       document.removeEventListener("pointerleave", hover, true);
       for (const el of document.querySelectorAll(".sa-pips, [data-sa-block], .sa-phase")) el.remove();
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-job]")) { delete el.dataset.saJob; delete el.dataset.saHot; el.style.removeProperty("--sa-job"); }
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-short]")) unshorten(el);
       style.remove();
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-agent]")) { delete el.dataset.saAgent; delete el.dataset.saRole; }
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-labeled]")) {

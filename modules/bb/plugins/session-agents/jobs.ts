@@ -35,3 +35,9 @@ export const jobsOf = (threads: readonly JobThread[]): Map<string, Job> => {
   }
   return out;
 };
+
+/** "Chief of Staff · phase 3" -> { name: "Chief of Staff", n: 3 }. Anything else (no " · phase N" suffix) -> null. */
+export const phasedTitle = (title: string): { name: string; n: number } | null => {
+  const m = title.match(/^(.+?)\s+·\s+phase\s+(\d+)\s*$/i);
+  return m && m[1]!.trim() ? { name: m[1]!.trim(), n: Number(m[2]) } : null;
+};
