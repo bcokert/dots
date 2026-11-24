@@ -15,16 +15,11 @@
   .chip { padding: 1px 8px; border-radius: 999px; background: color-mix(in srgb, var(--m) 22%, transparent); }
   .par { display: flex; gap: 6px; align-items: center; margin-left: auto; color: var(--muted-foreground); }
   .bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 12px; font-size: 13px; }
-  /* Key: tiny boxes drawn like the cards, so it reads without words to decode. */
-  .key { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; margin-left: auto; font-size: 11px; color: var(--muted-foreground); }
-  .key .card { padding: 1px 7px; border-radius: 6px; }
-  .key .gap { width: 8px; }
 </style>
 <div class="cards" id="cards"></div>
 <div class="bar">
   <button type="button" id="go">Put my choice in my message</button>
   <span id="status" role="status"></span>
-  <span class="key" id="key"></span>
 </div>
 <script>
 (function () {
@@ -52,10 +47,6 @@
     card.append(top, what, chips);
     cards.append(card);
   });
-  const key = document.getElementById("key");
-  ["fable", "opus", "sonnet", "haiku"].forEach((m) => key.append(el("span", "card m-" + m, m)));
-  key.append(el("span", "gap"));
-  ["low", "medium", "high", "max"].forEach((e) => key.append(el("span", "card m-opus e-" + e, e)));
   document.getElementById("go").addEventListener("click", () => {
     const on = [...document.querySelectorAll("input[type=checkbox]:checked")].map((b) => SLICES[Number(b.dataset.i)].title);
     const text = on.length > 1 ? "Go. Run in parallel: " + on.join(", ") + ". The rest one after another." : "Go, one after another.";

@@ -64,9 +64,10 @@ done <<<"$installed"
 # 1b'. Third-party plugins: installed from git, pinned to the commit we reviewed (their server code runs inside bb
 # with this user's rights). Bumping one: read the diff since the pinned commit, then change the sha here. The next run
 # removes the old pin and installs the new one; bb deletes a removed plugin's settings, and section 2 sets ours again.
+#   genui: our fork of ComicBit/bb-plugin-genui (branch bdon: upstream d8cac8d + closed questions look closed, a lone
+#   answer button sends at once). Upstreaming is pending; bumping it means rebasing bdon onto upstream.
 git_plugins=(
-  "genui https://github.com/ComicBit/bb-plugin-genui.git d8cac8d1781bac336214cc38981aba4a58d9c1c0"
-  "plan-progress https://github.com/mrsu-smirnov/bb-plugin-plan-progress.git 3be8ee2702021f73db6919bc024834254304b8f3"
+  "genui https://github.com/bcokert/bb-plugin-genui.git 7d149453a2d71710ca88210faa252f6c969cfaf6"
 )
 for entry in "${git_plugins[@]}"; do
   read -r id url sha <<<"$entry"
@@ -80,6 +81,16 @@ for entry in "${git_plugins[@]}"; do
   bbc plugin install "git:$url@$sha" --yes >/dev/null || fail "bb plugin install git:$url@$sha failed"
   bbc plugin source "$id" --json >/dev/null 2>&1 || fail "installed $url, but not as bb-plugin \"$id\" (bb plugin list): fix its id in git_plugins"
   ok "bb-plugin $id"
+done
+
+# 1b''. Plugins we tried and dropped: uninstalled wherever they're still installed.
+#   plan-progress: a progress bar per job; not useful in Clarity, where the todos are the live view (Bdon 2026-11-23).
+for id in plan-progress; do
+  if bbc plugin source "$id" --json >/dev/null 2>&1; then
+    bbc plugin remove "$id" >/dev/null || fail "bb plugin remove $id failed"
+    fix "removed bb-plugin $id (dropped)"
+  fi
+  ok "bb-plugin $id: not installed"
 done
 
 # 1c. Built-in plugins we don't use stay off. Worktrees: a new session opens the project's own folder (bb's
@@ -112,16 +123,9 @@ ok "session-agents: label \"${BB_SESSION_LABEL:-${DOTS_BB_LABEL:-}}\", work mach
 #   genui webLookups off: with it on, any https image a reply's UI names is fetched by this bb server, with no tool
 #     call to see or approve. A prompt-injected session could put private data in that URL. Off also turns off
 #     ImageSearch and Map lookups (photos, place names, map tiles).
-#   plan-progress isolateClaude off: it only hides a Claude Desktop mod we don't use, and it works by putting its own
-#     launcher in front of bb's Claude executable (BB_CLAUDE_CODE_EXECUTABLE), the pods' claude-pod wrapper included.
 changed=0; plugin_setting genui webLookups false && changed=1
 (( changed )) && bbc plugin reload genui >/dev/null
-#   plan-progress automaticReminders off: it nudged mid-turn about a bar that already existed (9 times in one day);
-#     the lead rules in AGENTS.md already say when a job gets a bar.
-changed=0; plugin_setting plan-progress isolateClaude false && changed=1
-plugin_setting plan-progress automaticReminders false && changed=1
-(( changed )) && bbc plugin reload plan-progress >/dev/null
-ok "genui: web lookups off; plan-progress: Claude launcher left alone, no automatic reminders"
+ok "genui: web lookups off"
 
 # 2b. This bb server's own machine (the one with no machine provider) gets BB_MACHINE_NAME, if set.
 if [[ -n "${BB_MACHINE_NAME:-}" ]]; then

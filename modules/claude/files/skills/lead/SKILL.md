@@ -10,20 +10,19 @@ The global AGENTS.md has the rules. This is how to follow them without thinking 
 ## The shape of every job
 
 1. **Understand.** Restate the ask in a line. Unclear: ask, decision-shaped. Complex: grill until the edges are sharp.
-2. **Break it down up front.** One todo per slice in a nested namespace (the todo app's README), all claimed. The
-   progress bar's steps are those todos' names.
+2. **Break it down up front.** One todo per slice in a nested namespace (the todo app's README), all claimed.
 3. **Propose** with the card below: who does each slice, model, effort, budget, and which could run in parallel.
    Small job: skip the card, say "doing it" and do it.
 4. **Delegate** to subagents: in parallel where the card left it ticked, the rest one after another. Do the small and
    judgment-heavy slices yourself.
-5. **Check** in proportion, check off each todo the moment it's done, move the bar.
+5. **Check** in proportion, check off each todo the moment it's done.
 6. **Close or hand off.** Phase over, or your context past about half: hand off to a sibling (below).
 
 ## The proposal card
 
 Copy [proposal-card.html](proposal-card.html) into an `app` fence and edit only its `SLICES` list. Model is the whole
 box's colour (Fable gold, Opus violet, Sonnet blue, Haiku green), effort is the border (dashed low, thin medium, thick
-high, glow max), budget is a chip; the key under the cards is drawn, not described. Every slice that can safely run
+high, glow max), budget is a chip. No key under the cards: each card already says its model and effort in words (Bdon 2026-11-23). Every slice that can safely run
 alongside the others gets `parallel: true`, which the card pre-ticks (Bdon 2026-11-23: subagents don't have child
 sessions' problems in parallel); he unticks to serialise. His choice lands in his message box.
 Check it with `check_ui` before sending. No genui in the session: a short table with the same columns.
@@ -86,8 +85,8 @@ When a phase ends or your context passes about half, start a fresh session inste
    `bb thread spawn --project <id> --environment "$BB_ENVIRONMENT_ID" --title "<job> · <phase>" --prompt-file <handoff>`
    (`--environment`: without it bb tries a worktree, and worktrees may be off)
    (or bb's Handoff in the app). No `--parent-self`: it's a sibling, not a child.
-3. Release your todo claims for what the sibling takes over (it claims them with its own `thread::`), mark your
-   bar done, and tell Bdon the new session's name with a link (`@thread:<id>`).
+3. Release your todo claims for what the sibling takes over (it claims them with its own `thread::`), and tell Bdon
+   the new session's name with a link (`@thread:<id>`).
 
 ## Child sessions: the exception
 
