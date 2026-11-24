@@ -348,7 +348,7 @@ function Chip({ host, life }: { host: Host; life: string }) {
         title={failed ? "Couldn't load this todo; click for the link" : `${name}${isList ? ` · ${openItems.length} open` : crumb ? ` · in ${crumb}` : ""}`}
         className={`inline-flex max-w-full cursor-pointer items-center gap-1 rounded-full px-1.5 py-px align-baseline text-[0.8em] leading-tight ${bg} ${tone === "done" ? "text-muted-foreground" : ""}`}>
         {isList ? <Icon name="Folder" className="size-3 flex-none" />
-          : <span className={`grid size-3 flex-none place-items-center rounded-[3px] border-[1.5px] ${tone === "done" ? "border-foreground bg-foreground text-background" : "border-muted-foreground/60"}`}>{tone === "done" ? <Icon name="Check" className="size-2.5" /> : null}</span>}
+          : <span className={`grid size-3 flex-none place-items-center rounded-[3px] border-[1.5px] ${tone === "done" ? "border-foreground bg-foreground text-background" : "border-muted-foreground/60"}`} />}
         <span className={`max-w-[7.5rem] self-baseline truncate whitespace-nowrap text-left ${tone === "done" ? "line-through decoration-muted-foreground/50" : ""}`}>{short}</span>
       </button>
       {open ? (
