@@ -30,7 +30,13 @@ Walk every list you worked in (and, if no other live session in your group is le
   in the group (`bb thread tell`). Don't spawn a new session for it while others in the group are still open.
 - **Waiting on Bdon?** `owner:: bdon`, and your last message lists it with why.
 
-Your last message lists where every open todo went. Then the Archive button.
+**Sessions you started** get the same pass. One still open: stay open, or make sure it has its own group tag (its
+project's, or yours if it's the same work: `bb session-agents tag --thread <id> --group "<group>"`) and tell it
+it's that group's lead now. Keep its `--spawned-by` as history: the list only nests a row under a spawner in the same
+group, so the tag never pulls it out of its group. Never archive over a session that's still running under you
+without a group of its own: it would end up flat in a catch-all with nobody watching it.
+
+Your last message lists where every open todo and every session you started went. Then the Archive button.
 
 ## The proposal card
 
@@ -48,8 +54,10 @@ and the one button writes the plan plus every pick (Bdon 2026-11-24: decides fas
 ## Tagging sessions
 
 The session list (session-agents bb-plugin) groups, nests and flags sessions from tags. At the start of a job, tag
-your own session with its group, the todo project's name: `bb session-agents tag --group "<project>"`. After every
-spawn, tag the new session:
+your own session with its group, the todo project's name: `bb session-agents tag --group "<project>"`. The group is
+the project the session works in, as narrow as the work (Design system, not Clarity). Work scattered across
+projects (a todo review) spawns into each piece's own group, never one catch-all. After every spawn, tag the new
+session:
 
 `bb session-agents tag --thread <new id> --group "<project>" [--priority blocking|urgent --reason "<one line>"]`
 

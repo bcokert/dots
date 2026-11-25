@@ -87,6 +87,9 @@ proposal card, the brief template, models, budgets and handoffs.
    lead, who hands it out once the current phase is done: open sessions finish before new ones start. Before a lead
    archives, it passes over its lists; the last lead in a project group passes over the whole project. Each open
    todo ends claimed, handed to a named session, or handed back to me with a reason in its last message.
+   A spawner never archives while a session it started is open: it stays, or first makes sure that session has its
+   own group (its project's, or the spawner's own), keeping who spawned it as history. Groups are the main grouper,
+   never a catch-all; inside a group, children and siblings nest under their spawner.
 9. Don't overdo it: the todos are the record.
 
 ## Writing as me
