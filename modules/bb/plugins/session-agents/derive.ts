@@ -91,3 +91,27 @@ export const pipsFor = (phaseNumbers: readonly number[] | null, n: number): Pip[
   const all = phaseNumbers && phaseNumbers.length ? [...phaseNumbers].sort((a, b) => a - b) : Array.from({ length: n }, (_, i) => i + 1);
   return all.slice(0, 12).map((p) => (p < n ? "done" : p === n ? "now" : "next"));
 };
+
+export type Claim = { thread?: string | null; text?: string | null };
+const RUNNING = new Set(["active", "starting", "pending"]);
+/**
+ * Idle sessions (not archived, not running) that still hold todo claims: thread id -> the claimed todos' texts. A
+ * session that stopped while holding a claim is parked, waiting on Bdon; one with no claims is just abandoned.
+ */
+export const waitingOn = (threads: readonly { id: string; isArchived?: boolean; status?: string }[], claims: readonly Claim[]): Map<string, string[]> => {
+  const by = new Map<string, string[]>();
+  for (const c of claims) {
+    if (typeof c?.thread !== "string" || !c.thread) continue;
+    by.set(c.thread, [...(by.get(c.thread) ?? []), (typeof c.text === "string" ? c.text.trim() : "") || "(untitled todo)"]);
+  }
+  const out = new Map<string, string[]>();
+  for (const t of threads) {
+    const texts = by.get(t.id);
+    if (texts && !t.isArchived && !RUNNING.has(t.status ?? "")) out.set(t.id, texts);
+  }
+  return out;
+};
+
+/** Tooltip: one line per claimed todo, at most `max`, then "+N more". */
+export const waitingTip = (texts: readonly string[], max = 5): string =>
+  `Waiting on Bdon: ${texts.slice(0, max).join("\n")}${texts.length > max ? `\n+${texts.length - max} more` : ""}`;

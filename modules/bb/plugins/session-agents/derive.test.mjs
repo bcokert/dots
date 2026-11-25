@@ -1,6 +1,6 @@
 // Run: node derive.test.mjs
 import assert from "node:assert/strict";
-import { groupOf, spawnerOf, layout, pipsFor } from "./derive.ts";
+import { groupOf, spawnerOf, layout, pipsFor, waitingOn, waitingTip } from "./derive.ts";
 
 const threads = {
   h1: { id: "h1", projectId: "p", parentThreadId: null },
@@ -64,4 +64,12 @@ assert.equal(layout(["a", "e"], ctx).get("a").header, "Money", "a group of one g
 assert.deepEqual(pipsFor([1, 2, 3, 4], 3), ["done", "done", "now", "next"]);
 assert.deepEqual(pipsFor([1, 3], 3), ["done", "now"], "gaps follow the job's own phases");
 assert.deepEqual(pipsFor(null, 4), ["done", "done", "done", "now"], "lone phase N draws N pips");
+// waiting on Bdon: idle + claimed only
+const th = [{ id: "i", status: "idle" }, { id: "r", status: "active" }, { id: "z", status: "idle", isArchived: true }, { id: "n", status: "idle" }, { id: "s", status: "starting" }, { id: "u" }];
+const w = waitingOn(th, [{ thread: "i", text: "Fix a" }, { thread: "i", text: "Fix b" }, { thread: "r", text: "x" }, { thread: "z", text: "y" }, { thread: "s", text: "q" }, { thread: "u", text: "" }, { thread: null, text: "w" }, { text: "v" }]);
+assert.deepEqual([...w.keys()].sort(), ["i", "u"], "idle and claimed only: not running, archived or unclaimed");
+assert.deepEqual(w.get("i"), ["Fix a", "Fix b"]);
+assert.deepEqual(w.get("u"), ["(untitled todo)"]);
+assert.equal(waitingTip(["a", "b"]), "Waiting on Bdon: a\nb");
+assert.equal(waitingTip(["1", "2", "3", "4", "5", "6", "7"]), "Waiting on Bdon: 1\n2\n3\n4\n5\n+2 more");
 console.log("derive: ok");

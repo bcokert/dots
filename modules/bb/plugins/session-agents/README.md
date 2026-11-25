@@ -15,6 +15,9 @@ phone's "Recent" list); if bb's markup changes, rows just look normal. Unloading
 - **Urgent / blocking:** a flat tinted row and an icon. Blocking (red, stop sign): the spawner can't proceed
   without it. Urgent (amber, bolt): it fixes something critical. Hover for the reason. It stays until the session is
   archived or cleared.
+- **Waiting on Bdon:** a small hourglass beside the title of a session that is idle (not running, not archived) but
+  still holds `doing::` todo claims: it stopped and is parked, not abandoned. Hover: the claimed todos, up to five.
+  Claims come from the todo app's API (`/api/claims`), polled every 60 s; with no Access token configured there are no marks.
 - **Phase pips:** a session titled `<job> · phase N` shows one small square per phase in the job's colour. Past
   phases are filled, the current one is open and glows. Hover: "<job>: phase N of M". The title shows just the job name.
 - **Subagents:** a pip per subagent of the latest turn, and a dim row per running one.
@@ -41,7 +44,7 @@ bb session-agents show [--thread <id>]
 
 ## Checks
 
-`node derive.test.mjs` covers group inheritance, spawner precedence, the header rule, ordering and pips.
+`node derive.test.mjs` covers group inheritance, spawner precedence, the header rule, ordering, pips and the waiting rule.
 
 ## How the list is ordered
 
