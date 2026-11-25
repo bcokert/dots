@@ -10,7 +10,7 @@ const threads = {
   c: { id: "c", projectId: "p", parentThreadId: null }, // tagged spawner b
   d: { id: "d", projectId: "p", parentThreadId: null },
   e: { id: "e", projectId: "p", parentThreadId: null },
-  f: { id: "f", projectId: "p", parentThreadId: null }, // lone group
+  f: { id: "f", projectId: "p", parentThreadId: null }, // a group of one
   j1: { id: "j1", projectId: "p", parentThreadId: null },
   j2: { id: "j2", projectId: "p", parentThreadId: null },
 };
@@ -38,7 +38,7 @@ meta.x = { spawnedBy: "y" }; meta.y = { spawnedBy: "x" };
 threads.x = { id: "x", projectId: "p", parentThreadId: null }; threads.y = { id: "y", projectId: "p", parentThreadId: null };
 assert.equal(groupOf("x", ctx), null);
 
-// layout: Health first, then Money (2+), lone group falls into the ungrouped, spawned rows directly under their spawner
+// layout: Health first, then Solo (a group of one) and Money by first appearance, then ungrouped; spawned rows directly under their spawner
 const ids = ["e", "f", "c", "d", "b", "a", "h1", "j1", "h2", "j2"];
 const L = layout(ids, ctx);
 const ordered = [...L].sort((p, q) => p[1].order - q[1].order).map(([id]) => id);
@@ -48,16 +48,17 @@ assert.deepEqual([...money].sort(), ["a", "b", "c", "d", "j1", "j2"]);
 assert.ok(ordered.indexOf("a") < ordered.indexOf("b") && ordered.indexOf("b") === ordered.indexOf("a") + 1, "b right under a");
 assert.equal(ordered[ordered.indexOf("b") + 1], "c", "c right under b");
 assert.equal(L.get("a").depth, 0); assert.equal(L.get("b").depth, 1); assert.equal(L.get("c").depth, 2);
-assert.equal(L.get("f").group, null, "lone group is not a group");
-assert.ok(ordered.indexOf("f") > ordered.indexOf("j2") && ordered.indexOf("e") > ordered.indexOf("j2"), "ungrouped last");
+assert.equal(L.get("f").group, "Solo", "a group of one is still a group");
+assert.ok(ordered.indexOf("f") < ordered.indexOf(money[0]), "Solo first appears before Money");
+assert.ok(ordered.indexOf("e") > ordered.indexOf("j2") && ordered.indexOf("e") > ordered.indexOf("f"), "ungrouped last");
 // headers: one per shown group, on its first row
 assert.equal(L.get("h1").header, "Health");
-assert.equal(ids.filter((id) => L.get(id).header).length, 2);
+assert.equal(ids.filter((id) => L.get(id).header).length, 3);
 assert.equal(L.get(money[0]).header, "Money");
-// Health always gets a header, even alone
-const solo = layout(["h1", "e"], ctx);
-assert.equal(solo.get("h1").header, "Health");
-assert.equal(layout(["a", "e"], ctx).get("a").header, null, "a lone non-health group gets none");
+assert.equal(L.get("f").header, "Solo");
+// every group gets a header, even alone
+assert.equal(layout(["h1", "e"], ctx).get("h1").header, "Health");
+assert.equal(layout(["a", "e"], ctx).get("a").header, "Money", "a group of one gets its header");
 
 // pips: job phases 1..4, now = 3
 assert.deepEqual(pipsFor([1, 2, 3, 4], 3), ["done", "done", "now", "next"]);

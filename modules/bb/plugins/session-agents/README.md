@@ -8,8 +8,7 @@ phone's "Recent" list); if bb's markup changes, rows just look normal. Unloading
 - **Agent icon:** house = a machine with your own login, briefcase = a work machine, solid terminal = a Host agent
   (runs directly on a computer). A crown or branch arrow on it marks a lead running a team, or a worker.
 - **Groups:** inside a project, sessions sit under a small label with a coloured bar. Health first, then the other
-  groups, then everything else. A group needs 2+ sessions in the project to get a label (Health always does); a lone
-  grouped session is listed with the rest.
+  groups, then everything else. Every group gets its label, even with one session.
 - **Spawned by:** a session spawned by another sits right under it, indented one step per level, with a ↳. Hover
   for who spawned it.
 - **Health:** a red pulse in place of the agent icon. The tooltip still names the agent.

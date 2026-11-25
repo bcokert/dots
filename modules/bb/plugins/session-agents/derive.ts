@@ -38,16 +38,13 @@ export type Placed = { order: number; depth: number; group: string | null; heade
 
 /**
  * Where each visible row of one project's list goes. `ids` are the rows in bb's own order. Health first, then other
- * groups in order of first appearance, then everything else. A group with 2+ rows gets a header (Health always); a
- * lone grouped session is just listed with the ungrouped. A spawned row sits right under its spawner, one step deeper.
+ * groups in order of first appearance, then everything else. Every group gets a header, even with one row. A spawned
+ * row sits right under its spawner, one step deeper.
  */
 export const layout = (ids: readonly string[], ctx: Ctx): Map<string, Placed> => {
   const visible = new Set(ids);
   const raw = new Map(ids.map((id) => [id, groupOf(id, ctx)]));
-  const count = new Map<string, number>();
-  for (const g of raw.values()) if (g) count.set(g.toLowerCase(), (count.get(g.toLowerCase()) ?? 0) + 1);
-  const shown = (g: string | null) => (g && (isHealth(g) || (count.get(g.toLowerCase()) ?? 0) >= 2) ? g : null);
-  const group = new Map(ids.map((id) => [id, shown(raw.get(id) ?? null)]));
+  const group = new Map(ids.map((id) => [id, raw.get(id) ?? null]));
   const rank = new Map<string, number>(); // lower-cased group -> position
   const names = new Map<string, string>();
   for (const id of ids) {
