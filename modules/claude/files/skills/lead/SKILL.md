@@ -18,6 +18,19 @@ The global AGENTS.md has the rules. This is how to follow them without thinking 
    judgment-heavy slices yourself.
 5. **Check** in proportion, check off each todo the moment it's done.
 6. **Close or hand off.** Phase over, or your context past about half: hand off to a sibling (below).
+7. **Leave no orphans.** Before you archive, the pass below. Never release a claim to nobody.
+
+## Before you archive
+
+Walk every list you worked in (and, if no other live session in your group is left, the whole project):
+
+- **Live session on it?** Its claim stays.
+- **Next phase's work?** It's named in the handoff file and the sibling claims it first thing.
+- **Later, no session yet?** You're the project's lead until you archive: keep it, or hand it to the lead still running
+  in the group (`bb thread tell`). Don't spawn a new session for it while others in the group are still open.
+- **Waiting on Bdon?** `owner:: bdon`, and your last message lists it with why.
+
+Your last message lists where every open todo went. Then the Archive button.
 
 ## The proposal card
 

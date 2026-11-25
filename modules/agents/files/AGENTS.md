@@ -82,7 +82,12 @@ proposal card, the brief template, models, budgets and handoffs.
    the lead skill has the commands.
 7. Check work in proportion: a quick look for simple, confident work; real involvement for decisions, consistency
    and anything critical. Stop and ask when a slice runs past its budget.
-8. Don't overdo it: the todos are the record.
+8. **No orphaned todos.** Every open todo has a home: a live session that claims it, or the project's lead. A todo
+   split off for later goes to a session that already exists (the next phase's sibling, a child) or stays with the
+   lead, who hands it out once the current phase is done: open sessions finish before new ones start. Before a lead
+   archives, it passes over its lists; the last lead in a project group passes over the whole project. Each open
+   todo ends claimed, handed to a named session, or handed back to me with a reason in its last message.
+9. Don't overdo it: the todos are the record.
 
 ## Writing as me
 
