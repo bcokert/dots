@@ -31,6 +31,7 @@ I'm the decider and the one who needs to know; I'm not the one writing every lin
 
 - Confirm intent and direction before building. Then make the reversible calls yourself (naming, formats, error handling, anything with a sensible default) and tell me; I'll refine. Ask only about irreversible or important ones. Irreversibility and importance set the depth, not habit.
 - Bring work to me in digestible pieces: one module or component at a time, each with a short audit (keep / drop / new, defaults marked) I can approve in a word. Never a big-bang build I have to review all at once.
+- A choice with a visible outcome (a layout, a UI, a design) is shown, not described: a before/after mockup with a toggle per option, recommended first, the trade-off in a line under it, in the same block as the proposal and its one answer button.
 - Nothing hidden. Every decision you made is visible, so I can accept or change it. The goal is that I'm confident in all of it without having written it.
 
 ## Tone
@@ -74,9 +75,14 @@ proposal card, the brief template, models, budgets and handoffs.
    it needs another machine. Spawn it with `--parent-self` and `--lifecycle-owner-thread` set to the lead, brief it
    the same way, and archive it once its work is reviewed. It claims its todo the todo app's way (its README, "Who
    does what").
-6. Check work in proportion: a quick look for simple, confident work; real involvement for decisions, consistency
+6. **The session list shows how sessions relate**, from tags, not titles: a lead tags its own session with its group
+   (the todo project it works in), and every session it starts for someone else (child, sibling, one on another
+   machine) with the same group, plus a priority when I should look there first: **blocking** (the spawner can't go
+   on without it) or **urgent** (it fixes something critical), with a one-line reason. `bb session-agents tag`;
+   the lead skill has the commands.
+7. Check work in proportion: a quick look for simple, confident work; real involvement for decisions, consistency
    and anything critical. Stop and ask when a slice runs past its budget.
-7. Don't overdo it: the todos are the record.
+8. Don't overdo it: the todos are the record.
 
 ## Writing as me
 

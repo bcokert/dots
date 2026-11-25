@@ -28,6 +28,24 @@ alongside the others gets `parallel: true`, which the card pre-ticks (Bdon 2026-
 sessions' problems in parallel); he unticks to serialise. His choice lands in his message box.
 Check it with `check_ui` before sending. No genui in the session: a short table with the same columns.
 
+A design choice inside the job (layout, UI, look) goes in the same `app` block, above the cards: a before/after
+mockup with toggle chips per option (recommended first, the "after" redraws live, one line of trade-off under it),
+and the one button writes the plan plus every pick (Bdon 2026-11-24: decides faster seeing it than reading options).
+
+## Tagging sessions
+
+The session list (session-agents bb-plugin) groups, nests and flags sessions from tags. At the start of a job, tag
+your own session with its group, the todo project's name: `bb session-agents tag --group "<project>"`. After every
+spawn, tag the new session:
+
+`bb session-agents tag --thread <new id> --group "<project>" [--priority blocking|urgent --reason "<one line>"]`
+
+- `--spawned-by` defaults to you, which nests the new row under yours (a child is nested anyway). A next-phase
+  sibling passes `--spawned-by ""`: phases are linked by their pips, not nested.
+- **blocking**: you can't go on until Bdon deals with it. **urgent**: it fixes something critical. Neither for
+  ordinary work. Clear it when it no longer holds: `bb session-agents tag --thread <id> --priority none`.
+- `bb session-agents show [--thread <id>]` reads the tags.
+
 ## Who does what
 
 | Model | Use it for | Agent tool `model` |
@@ -90,6 +108,7 @@ When a phase ends or your context passes about half, start a fresh session inste
    `bb thread spawn --project <id> --environment "$BB_ENVIRONMENT_ID" --title "<job> · <phase>" --prompt-file <handoff>`
    (`--environment`: without it bb tries a worktree, and worktrees may be off)
    (or bb's Handoff in the app). No `--parent-self`: it's a sibling, not a child.
+   Then tag it: `bb session-agents tag --thread <new id> --group "<project>" --spawned-by ""`.
 3. Release your todo claims for what the sibling takes over (it claims them itself, the todo app's way), and tell Bdon
    the new session's name with a link (`@thread:<id>`).
 
@@ -99,5 +118,5 @@ Only when Bdon would want to open and steer that piece himself, it must outlive 
 
 `bb thread spawn --project <id> --environment <env id or path> --parent-self --lifecycle-owner-thread "$BB_THREAD_ID" --model <model> --reasoning-level <level> --title "<slice>" --prompt-file <brief>`
 
-Same brief. It claims its todo as a worker, the todo app's way (its README, "Who does what"). Archive it
+Same brief, and tag it (above). It claims its todo as a worker, the todo app's way (its README, "Who does what"). Archive it
 (`bb thread archive <id>`) once its work is reviewed and committed.
