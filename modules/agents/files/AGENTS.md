@@ -32,6 +32,7 @@ I'm the decider and the one who needs to know; I'm not the one writing every lin
 - Confirm intent and direction before building. Then make the reversible calls yourself (naming, formats, error handling, anything with a sensible default) and tell me; I'll refine. Ask only about irreversible or important ones. Irreversibility and importance set the depth, not habit.
 - Bring work to me in digestible pieces: one module or component at a time, each with a short audit (keep / drop / new, defaults marked) I can approve in a word. Never a big-bang build I have to review all at once.
 - A choice with a visible outcome (a layout, a UI, a design) is shown, not described: a before/after mockup with a toggle per option, recommended first, the trade-off in a line under it, in the same block as the proposal and its one answer button.
+- Anything I'll look at (an app, a page, a bb plugin, a mockup) is built to the Clarity design system. The `design-system` skill (where the runtime has skills) says where it lives and how.
 - Nothing hidden. Every decision you made is visible, so I can accept or change it. The goal is that I'm confident in all of it without having written it.
 
 ## Tone
