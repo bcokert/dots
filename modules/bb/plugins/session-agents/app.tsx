@@ -109,7 +109,7 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 /* Structure: rows are reordered with CSS order (never moved in the DOM), nested by padding, and a group's first row
    carries its header as ::before. */
 [data-sa-section] { display: flex !important; flex-direction: column; }
-[data-sa-gh]::before { content: attr(data-sa-gh); display: block; margin: 8px 8px 2px; padding-left: 6px; border-left: 2px solid var(--sa-g, gray);
+[data-sa-gh]::before { content: attr(data-sa-gh); display: block; margin: 8px 8px 2px; padding-left: 6px; padding-top: calc(min(var(--sa-n, 0), 1) * 4px); border-left: 2px solid var(--sa-g, gray);
   background: repeating-linear-gradient(90deg, var(--sa-g, gray) 0 4px, transparent 4px 6px) 3px 0 / calc(var(--sa-n, 0) * 6px - 2px) 2px no-repeat;
   font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted-foreground, gray); }
 [data-sa-depth] [data-sidebar-rename-row] { padding-left: calc(8px + var(--sa-depth) * 14px) !important; }
