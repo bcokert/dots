@@ -45,7 +45,7 @@ export default async function plugin(bb: BbPluginApi) {
     try {
       res = await fetch(base + route, {
         method, redirect: "manual", signal: AbortSignal.timeout(10000),
-        headers: { ...auth, ...(body === undefined ? {} : { "content-type": "application/json" }) },
+        headers: { ...auth, ...(method === "GET" ? {} : { "content-type": "application/json" }) },
         body: body === undefined ? undefined : JSON.stringify(body),
       });
     } catch (err) {
