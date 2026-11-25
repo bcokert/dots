@@ -73,3 +73,31 @@ assert.deepEqual(w.get("u"), ["(untitled todo)"]);
 assert.equal(waitingTip(["a", "b"]), "Waiting on Bdon: a\nb");
 assert.equal(waitingTip(["1", "2", "3", "4", "5", "6", "7"]), "Waiting on Bdon: 1\n2\n3\n4\n5\n+2 more");
 console.log("derive: ok");
+
+// families: colour by root, flat descendants in spawn order, dashes
+{
+  const T = (id, createdAt, parentThreadId = null) => ({ id, projectId: "p", parentThreadId, createdAt });
+  const th = { r1: T("r1", 100), r2: T("r2", 50), k1: T("k1", 300, "r1"), k2: T("k2", 200, "r1"), g1: T("g1", 400, "k1"),
+    hh: T("hh", 10), u: T("u", 500), cy1: T("cy1", 600), cy2: T("cy2", 700), z: T("z", 800), hk: T("hk", 900, "hh") };
+  const mt = { r1: { group: "Alpha" }, r2: { group: "Beta" }, k1: { group: "Kid1" }, k2: { group: "Kid2" }, g1: { group: "Grand" },
+    hh: { group: "Health" }, u: { group: "Orphan", spawnedBy: "gone" }, cy1: { group: "C1", spawnedBy: "cy2" }, cy2: { group: "C2", spawnedBy: "cy1" },
+    z: { group: "Zed" }, hk: { group: "Fromhealth" } };
+  const c = { thread: (id) => th[id], meta: (id) => mt[id], jobMates: () => [] };
+  const ids = Object.keys(th);
+  const L = layout(ids, c);
+  const hdr = (g) => [...L.values()].find((p) => p.header === g);
+  assert.deepEqual([hdr("Alpha").family, hdr("Alpha").dashes], ["Alpha", 0], "root");
+  assert.deepEqual([hdr("Kid2").family, hdr("Kid2").dashes], ["Alpha", 1], "earlier spawn = 1 dash");
+  assert.deepEqual([hdr("Kid1").family, hdr("Kid1").dashes], ["Alpha", 2]);
+  assert.deepEqual([hdr("Grand").family, hdr("Grand").dashes], ["Alpha", 3], "deeper flattens into the root's family");
+  assert.deepEqual([hdr("Orphan").family, hdr("Orphan").dashes], ["Orphan", 0], "unknown spawner -> root");
+  assert.equal(hdr("Fromhealth").dashes, 0, "health has no family");
+  assert.equal(hdr("Zed").dashes, 0);
+  // cycle: terminates, one root, the other a descendant
+  assert.deepEqual([hdr("C1").dashes, hdr("C2").dashes], [0, 1]);
+  assert.equal(hdr("C2").family, "C1");
+  // order: health first, then families by root start, descendants right after their root
+  const seq = [...L.values()].filter((p) => p.header).sort((a, b) => a.order - b.order).map((p) => p.header);
+  assert.deepEqual(seq, ["Health", "Beta", "Alpha", "Kid2", "Kid1", "Grand", "Orphan", "C1", "C2", "Zed", "Fromhealth"]);
+}
+console.log("families ok");

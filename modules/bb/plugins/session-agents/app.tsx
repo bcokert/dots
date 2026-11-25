@@ -110,6 +110,7 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
    carries its header as ::before. */
 [data-sa-section] { display: flex !important; flex-direction: column; }
 [data-sa-gh]::before { content: attr(data-sa-gh); display: block; margin: 8px 8px 2px; padding-left: 6px; border-left: 2px solid var(--sa-g, gray);
+  background: repeating-linear-gradient(90deg, var(--sa-g, gray) 0 4px, transparent 4px 6px) 3px 0 / calc(var(--sa-n, 0) * 6px - 2px) 2px no-repeat;
   font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted-foreground, gray); }
 [data-sa-depth] [data-sidebar-rename-row] { padding-left: calc(8px + var(--sa-depth) * 14px) !important; }
 .sa-spawn { flex: none; margin-right: 4px; font-size: 11px; line-height: 1; color: var(--muted-foreground, gray); opacity: .8; cursor: default; pointer-events: auto; }
@@ -558,8 +559,9 @@ function SessionAgents() {
             if (p.depth) { item.dataset.saDepth = ""; item.style.setProperty("--sa-depth", String(p.depth)); } else { delete item.dataset.saDepth; item.style.removeProperty("--sa-depth"); }
             if (p.header) {
               item.dataset.saGh = p.header;
-              item.style.setProperty("--sa-g", isHealth(p.header) ? "#e5484d" : `hsl(${hue(p.header)} 38% 52%)`);
-            } else { delete item.dataset.saGh; item.style.removeProperty("--sa-g"); }
+              item.style.setProperty("--sa-g", isHealth(p.header) ? "#e5484d" : `hsl(${hue(p.family ?? p.header)} 38% 52%)`);
+              item.style.setProperty("--sa-n", String(p.dashes));
+            } else { delete item.dataset.saGh; item.style.removeProperty("--sa-g"); item.style.removeProperty("--sa-n"); }
           } else clearItem(item);
           decorate(id, row, row.querySelector<HTMLElement>(".bb-thread-title"), p);
         }
@@ -572,7 +574,7 @@ function SessionAgents() {
       }
     };
     const clearItem = (el: HTMLElement) => {
-      el.style.removeProperty("order"); el.style.removeProperty("--sa-depth"); el.style.removeProperty("--sa-g");
+      el.style.removeProperty("order"); el.style.removeProperty("--sa-depth"); el.style.removeProperty("--sa-g"); el.style.removeProperty("--sa-n");
       delete el.dataset.saOrder; delete el.dataset.saGh; delete el.dataset.saDepth;
     };
     const paint = () => {

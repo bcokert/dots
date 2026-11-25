@@ -9,6 +9,11 @@ phone's "Recent" list); if bb's markup changes, rows just look normal. Unloading
   (runs directly on a computer). A crown or branch arrow on it marks a lead running a team, or a worker.
 - **Groups:** inside a project, sessions sit under a small label with a coloured bar. Health first, then the other
   groups, then everything else. Every group gets its label, even with one session.
+- **Group families:** a group started by Bdon is a root and gets its own colour. A group spawned from a session in
+  another group (directly or deeper) belongs to that root's family and takes its colour; the family is one flat list.
+  Dashes along the top of the label show the position: none for the root, one for the first spawned group, two for
+  the second (by first session's start), and so on. Order: families by their root's start, oldest first, each root
+  followed by its descendants. A spawner whose group isn't in the list makes its group a root. Health stays first and red.
 - **Spawned by:** a session spawned by another sits right under it, indented one step per level, with a ↳. Hover
   for who spawned it.
 - **Health:** a red pulse in place of the agent icon. The tooltip still names the agent.
