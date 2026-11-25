@@ -1,9 +1,10 @@
 // todo bb-plugin frontend: the todo lists as a side-panel tab, and the blues floating over bb.
 // Same look and behaviour as the life dashboard (clarity-todo web/life.html), in bb's own theme. Keep the two in step.
-import React, { useCallback, useEffect, useRef, useState, type DragEvent, type MouseEvent } from "react";
+import React, { useCallback, useEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
 import { definePluginApp, experimental_Icon as Icon, useBbNavigate, useRealtime, useRpc, useSettings } from "@get-bb/plugin-sdk/app";
 import type { rpcContract } from "./server";
+import { makeDrag, type DragTarget } from "./drag";
 
 type Child = { path: string; title: string; open: number; done: number; blue: number; doing: number };
 type Item = { notes?: string; fields?: Record<string, string>; issues?: string[]; id: string; text: string; done: boolean; blue: boolean; doing: string | null; by: string | null; child?: Child };
@@ -86,6 +87,13 @@ const WHO_ICONS: Record<string, string> = {
   branch: "<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='m15 12 4 4-4 4' stroke-width='3'/>",
 };
 const WHO_CSS = `
+[data-todo-drag] { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.todo-dragging { opacity: .3; }
+.todo-drag-ghost { background: var(--background); box-shadow: 0 8px 24px rgba(0,0,0,.35); opacity: .95; }
+body.todo-is-dragging * { cursor: grabbing !important; }
+.todo-drop-before { box-shadow: 0 -2px 0 0 var(--primary); }
+.todo-drop-after { box-shadow: 0 2px 0 0 var(--primary); }
+.todo-drop-into { box-shadow: inset 0 0 0 2px var(--primary); }
 [data-wc="personal"] { --wc: light-dark(#23845f, #4cc394); } [data-wc="work"] { --wc: light-dark(#6a4fe0, #a48dff); }
 [data-wc="bdon"], [data-wc="app"], [data-wc="unk"] { --wc: var(--muted-foreground, gray); }
 .td-wi, .td-wr { display: inline-block; flex: none; width: 14px; height: 14px; background-color: var(--wc, currentColor);
@@ -205,12 +213,12 @@ function TodoList({ path, nav, prefs, setPrefs, depth = 0 }: { path: string; nav
   const [list, setList] = useState<List | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
-  const [dragged, setDragged] = useState<string | null>(null);
   const refetch = useCallback(() => {
     rpc.call("list", { path }).then((l) => { setList(l as List); setError(null); }, (e: Error) => setError(e.message));
   }, [rpc, path]);
   useEffect(refetch, [refetch]);
   useRealtime(CHANGED, refetch);
+  useEffect(() => { window.addEventListener("todo-moved", refetch); return () => window.removeEventListener("todo-moved", refetch); }, [refetch]);
   const act = (p: Promise<unknown>) => p.then(refetch, (e: Error) => setError(e.message));
 
   if (error) return <div className="px-2.5 py-3 text-sm text-destructive">{error}</div>;
@@ -220,25 +228,18 @@ function TodoList({ path, nav, prefs, setPrefs, depth = 0 }: { path: string; nav
   if (prefs.sort === "auto") items = items.map((i, n) => [i, n] as const).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map(([i]) => i);
   const manual = prefs.sort === "manual";
 
-  const drop = (target: string) => (e: DragEvent) => {
-    e.preventDefault();
-    if (!dragged || dragged === target) return;
-    const ids = items.map((i) => i.id).filter((x) => x !== dragged);
-    ids.splice(ids.indexOf(target), 0, dragged);
-    setDragged(null);
-    act(rpc.call("order", { path, ids }));
-  };
-  const dragProps = (itemId: string) => manual
-    ? { draggable: true, onDragStart: () => setDragged(itemId), onDragEnd: () => setDragged(null), onDragOver: (e: DragEvent) => e.preventDefault(), onDrop: drop(itemId) }
+  // Rows carry data attributes for the pointer drag in TodoTab: which list they sit in, and the row after them.
+  const dragProps = (it: Item, n: number) => manual
+    ? { "data-todo-drag": it.id, "data-todo-drop": it.id, "data-todo-path": path, "data-todo-next": items[n + 1]?.id ?? "", ...(it.child ? { "data-todo-child": it.child.path } : {}) }
     : {};
 
   return (
     <div className="flex flex-col gap-0.5">
-      {items.map((it) => it.child
-        ? <NsRow key={it.id} item={it} child={it.child} parent={path} nav={nav} prefs={prefs} setPrefs={setPrefs} depth={depth} drag={dragProps(it.id)} onBlue={() => act(rpc.call("item", { path, id: it.id, blue: !it.blue }))} />
+      {items.map((it, n) => it.child
+        ? <NsRow key={it.id} item={it} child={it.child} parent={path} nav={nav} prefs={prefs} setPrefs={setPrefs} depth={depth} drag={dragProps(it, n)} onBlue={() => act(rpc.call("item", { path, id: it.id, blue: !it.blue }))} />
         : (
           <div key={it.id} className={`${rowBase} ${tint(it)} ${it.done ? "text-muted-foreground" : ""}`} title={whoTip(whoOf(it)) || undefined}
-            onClick={() => act(rpc.call("item", { path, id: it.id, done: !it.done }))} {...dragProps(it.id)}>
+            onClick={() => act(rpc.call("item", { path, id: it.id, done: !it.done }))} {...dragProps(it, n)}>
             {manual ? <Icon name="GripVertical" className="size-3.5 flex-none text-muted-foreground/60" /> : null}
             <Bullet done={it.done} />
             <span className={`min-w-0 flex-1 break-words ${it.done ? "line-through decoration-muted-foreground/50" : ""}`}>{it.text}</span>
@@ -294,6 +295,33 @@ function NsRow({ item, child, nav, prefs, setPrefs, depth, drag, onBlue }: { ite
   );
 }
 
+// --- Drag to reorder (manual sort): within a list, or into a namespace row (its folder moves with it). ---
+type RowTarget = DragTarget & { to: string; before: string | null };
+function dragRows(move: (body: { from: string; to: string; id: string; before: string | null }) => Promise<unknown>) {
+  return makeDrag<RowTarget>({
+    handle: (el) => el.closest("button, a") ? null : el.closest<HTMLElement>("[data-todo-drag]"),
+    target(x, y, src) {
+      const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-todo-drop]");
+      if (!el || el === src) return null;
+      const own = src.dataset.todoChild;
+      const within = (p?: string) => !!own && !!p && (p === own || p.startsWith(own + "/"));
+      const r = el.getBoundingClientRect(), f = (y - r.top) / r.height;
+      if (el.dataset.todoChild && f > 0.25 && f < 0.75) {
+        return within(el.dataset.todoChild) ? null : { el, cls: "into", to: el.dataset.todoChild, before: null };
+      }
+      const to = el.dataset.todoPath!;
+      if (within(to)) return null;
+      const before = f < 0.5 ? el.dataset.todoDrop! : el.dataset.todoNext || null;
+      if (before === src.dataset.todoDrag) return null;
+      return { el, cls: f < 0.5 ? "before" : "after", to, before };
+    },
+    drop(src, t) {
+      move({ from: src.dataset.todoPath!, to: t.to, id: src.dataset.todoDrag!, before: t.before })
+        .then(() => window.dispatchEvent(new Event("todo-moved")), () => window.dispatchEvent(new Event("todo-moved")));
+    },
+  });
+}
+
 // --- The side-panel tab ---
 function TodoTab({ params }: { params: unknown }) {
   const start = typeof (params as { path?: unknown })?.path === "string" ? (params as { path: string }).path : "";
@@ -305,8 +333,10 @@ function TodoTab({ params }: { params: unknown }) {
   useEffect(refetch, [refetch]);
   useRealtime(CHANGED, refetch);
   const toggleClass = "hover:text-foreground";
+  const manual = prefs.sort === "manual";
+  useEffect(() => manual ? dragRows((body) => rpc.call("move", body)) : undefined, [manual, rpc]);
   return (
-    <div className="flex h-full flex-col overflow-auto px-3 py-3">
+    <div className="flex h-full flex-col overflow-auto px-3 py-3" data-todo-scroll>
       <div className="mb-2 flex items-baseline gap-3 text-xs text-muted-foreground">
         <nav className="flex min-w-0 flex-1 flex-wrap items-baseline gap-1">
           {head?.crumbs.slice(0, -1).map((c) => (

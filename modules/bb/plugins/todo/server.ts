@@ -16,7 +16,7 @@ export const rpcContract = defineRpcContract({
   blues: { input: z.null(), output: any },
   item: { input: z.object({ path, id, done: z.boolean().optional(), blue: z.boolean().optional() }), output: any },
   remove: { input: z.object({ path, id }), output: any },
-  order: { input: z.object({ path, ids: z.array(id).max(1000) }), output: any },
+  move: { input: z.object({ from: path, to: path, id, before: id.nullable() }), output: any },
 });
 
 /** Realtime channel the app listens on: something changed in some list. */
@@ -79,7 +79,7 @@ export default async function plugin(bb: BbPluginApi) {
     blues: () => call("GET", "/api/blues"),
     item: ({ path, id, done, blue }) => call("POST", "/api/item", { path, id, done, blue }),
     remove: ({ path, id }) => call("DELETE", `/api/item?path=${q(path)}&id=${q(id)}`),
-    order: ({ path, ids }) => call("POST", "/api/order", { path, ids }),
+    move: ({ from, to, id, before }) => call("POST", "/api/move", { from, to, id, before }),
   });
 
   // Relay the app's server-sent events: any list changing (an agent, the web UI, another bb window) refreshes all.
