@@ -1,6 +1,9 @@
 // Jobs: sibling sessions titled "<job> · <phase>" in one project, while they aren't archived. Pure, so it can be
 // tested without bb.
-export const PALETTE = ["#dc2626", "#ea580c", "#d97706", "#16a34a", "#0d9488", "#0891b2", "#2563eb", "#7c3aed", "#c026d3", "#ca8a04", "#64748b"];
+// A job's colour is a Clarity accent (they mean nothing, which is the point; red stays for attention). CSS values,
+// with the old hex as the fallback under another bb theme.
+export const PALETTE = [["teal", "#0d9488"], ["cyan", "#0891b2"], ["blue", "#2563eb"], ["violet", "#7c3aed"], ["magenta", "#c026d3"], ["gold", "#ca8a04"], ["slate", "#64748b"]]
+  .map(([k, hex]) => `var(--cl-accent-${k}, ${hex})`);
 
 export type JobThread = { id: string; projectId: string; displayTitle: string; parentThreadId: string | null; isArchived?: boolean; createdAt?: number; href?: string };
 export type Phase = { id: string; n: number; title: string; href?: string };

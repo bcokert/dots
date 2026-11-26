@@ -53,16 +53,18 @@ const OCTAGON = svg("<path d='M8 2.5h8L21.5 8v8L16 21.5H8L2.5 16V8z'/><path d='M
 const HOURGLASS = svg("<path d='M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2'/>");
 const ZAP = svg("<path d='M13 2.5 4.5 13.5H12l-1 8 8.5-11H12z'/>");
 
+const ACCENTS = ["teal", "cyan", "blue", "violet", "magenta", "gold", "slate"];
+
 const CSS = `
 [data-sa-agent] > * { display: none !important; }
 [data-sa-agent]::before, [data-sa-header-agent]::before { content: ""; width: 14px; height: 14px; flex: none;
   background-color: var(--sa-agent);
   -webkit-mask: var(--sa-icon) center / contain no-repeat; mask: var(--sa-icon) center / contain no-repeat; }
 [data-provider-icon-tint][data-sa-agent]::before { width: 16px; height: 16px; }
-[data-sa-agent="personal"], [data-sa-header-agent="personal"] { --sa-agent: light-dark(#23845f, #4cc394); --sa-icon: ${HOUSE}; }
-[data-sa-agent="work"], [data-sa-header-agent="work"] { --sa-agent: light-dark(#6a4fe0, #a48dff); --sa-icon: ${BRIEFCASE}; }
-[data-sa-agent="personal-host"], [data-sa-header-agent="personal-host"] { --sa-agent: light-dark(#23845f, #4cc394); --sa-icon: ${TERMINAL}; }
-[data-sa-agent="work-host"], [data-sa-header-agent="work-host"] { --sa-agent: light-dark(#6a4fe0, #a48dff); --sa-icon: ${TERMINAL}; }
+[data-sa-agent="personal"], [data-sa-header-agent="personal"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); --sa-icon: ${HOUSE}; }
+[data-sa-agent="work"], [data-sa-header-agent="work"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); --sa-icon: ${BRIEFCASE}; }
+[data-sa-agent="personal-host"], [data-sa-header-agent="personal-host"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); --sa-icon: ${TERMINAL}; }
+[data-sa-agent="work-host"], [data-sa-header-agent="work-host"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); --sa-icon: ${TERMINAL}; }
 [data-sa-header-agent] { display: inline-flex; }
 /* Role mark, bottom-right of the agent icon: a crown is a lead (owns the job), a branch arrow is a worker (a lead's
    child session). Icons, not dots: filled/hollow dots read as online/offline. */
@@ -72,7 +74,7 @@ const CSS = `
 [data-sa-role]::after { position: absolute; right: -5px; bottom: -4px; }
 [data-sa-role="lead"], .sa-role[data-r="lead"] { --sa-role-icon: ${CROWN}; }
 [data-sa-role="worker"], .sa-role[data-r="worker"] { --sa-role-icon: ${BRANCH}; }
-.sa-role { display: inline-block; width: 12px; height: 12px; background-color: var(--sa-server, currentColor); }
+.sa-role { display: inline-block; width: 12px; height: 12px; background-color: var(--cl-agent, currentColor); }
 /* Phones: drop the separators so the session title keeps more room. */
 @media (max-width: 480px) { [data-sa-header] .sa-sep { display: none; } [data-sa-header] .sa-project { max-width: 5.5rem; } }
 .sa-server { color: var(--sa-server); }
@@ -80,19 +82,17 @@ const CSS = `
 .sa-label::before { content: "· "; color: var(--muted-foreground, currentColor); font-weight: 400; }
 /* Subagents: pips beside the title, and dim indented rows under it while they run. The cog icon (not a dot: dots
    read as online/offline) is in the lead agent's colour; the whole block says "working for the lead". */
-.sa-subs[data-k="personal"], .sa-pips[data-k="personal"] { --sa-agent: light-dark(#23845f, #4cc394); }
-.sa-subs[data-k="work"], .sa-pips[data-k="work"] { --sa-agent: light-dark(#6a4fe0, #a48dff); }
-.sa-subs[data-k="personal-host"], .sa-pips[data-k="personal-host"] { --sa-agent: light-dark(#23845f, #4cc394); }
-.sa-subs[data-k="work-host"], .sa-pips[data-k="work-host"] { --sa-agent: light-dark(#6a4fe0, #a48dff); }
+.sa-subs[data-k="personal"], .sa-pips[data-k="personal"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); }
+.sa-subs[data-k="work"], .sa-pips[data-k="work"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); }
+.sa-subs[data-k="personal-host"], .sa-pips[data-k="personal-host"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); }
+.sa-subs[data-k="work-host"], .sa-pips[data-k="work-host"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); }
 .sa-pips { display: inline-flex; gap: 3px; align-items: center; margin-left: 6px; flex: none; transition: opacity .6s; }
 .sa-pips[data-fading] { opacity: .35; }
-.sa-pip { width: 5px; height: 8px; border-radius: 1.5px; background: var(--muted-foreground, gray); opacity: .7; }
-.sa-pip[data-s="running"] { background: var(--sa-agent, #4cc394); opacity: 1; animation: sa-pulse 1.1s ease-in-out infinite; }
-.sa-pip[data-s="done"] { background: light-dark(#23845f, #4cc394); opacity: .9; }
-.sa-pip[data-s="error"] { background: light-dark(#d03a3a, #ff6b6b); opacity: 1; }
-@keyframes sa-pulse { 50% { opacity: .25; transform: scaleY(.65); } }
-@media (prefers-reduced-motion: reduce) { .sa-pip[data-s="running"] { animation: none; } }
-.sa-subs { display: flex; flex-direction: column; margin: 0 0 2px 17px; padding-left: 7px; border-left: 1px solid var(--border, rgba(128,128,128,.3)); }
+.sa-pip { width: 5px; height: 8px; border-radius: var(--cl-radius-sm, 2px); background: var(--cl-unset, var(--muted-foreground, gray)); opacity: .7; }
+.sa-pip[data-s="running"] { background: var(--cl-live, var(--primary, gray)); opacity: 1; box-shadow: 0 0 var(--cl-glow-sm, 6px) color-mix(in srgb, var(--cl-live, var(--primary, gray)) 60%, transparent); }
+.sa-pip[data-s="done"] { background: var(--cl-good, var(--foreground)); opacity: .9; }
+.sa-pip[data-s="error"] { background: var(--cl-attention, var(--destructive, red)); opacity: 1; }
+.sa-subs { display: flex; flex-direction: column; margin: 0 0 2px 17px; padding-left: 7px; border-left: 1px solid var(--cl-line, var(--border, rgba(128,128,128,.3))); }
 li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 .sa-sub { display: flex; align-items: center; gap: 5px; min-width: 0; height: 18px; font-size: 11px; line-height: 1; color: var(--muted-foreground, gray); opacity: .85; cursor: default; }
 .sa-sub::before { content: ""; width: 11px; height: 11px; flex: none; background-color: var(--sa-agent, currentColor);
@@ -102,16 +102,16 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 [data-sa-job][data-sa-hot] { background-color: color-mix(in srgb, var(--sa-job) 14%, transparent) !important; }
 /* Phase pips: one small square per phase in the job's colour. Past phases filled, this one open and glowing. */
 .sa-phase { display: inline-flex; align-items: center; gap: 3px; margin-left: 6px; flex: none; }
-.sa-pp { width: 7px; height: 7px; box-sizing: border-box; border-radius: 1px; border: 1.5px solid var(--sa-job); }
+.sa-pp { width: 7px; height: 7px; box-sizing: border-box; border-radius: var(--cl-radius-sm, 2px); border: 1.5px solid var(--sa-job); }
 .sa-pp[data-s="done"] { background: var(--sa-job); }
-.sa-pp[data-s="now"] { box-shadow: 0 0 7px 1px var(--sa-job); }
+.sa-pp[data-s="now"] { box-shadow: 0 0 var(--cl-glow-sm, 6px) 1px var(--sa-job); }
 .sa-pp[data-s="next"] { opacity: .3; }
 /* Structure: rows are reordered with CSS order (never moved in the DOM), nested by padding, and a group's first row
    carries its header as ::before. */
 [data-sa-section] { display: flex !important; flex-direction: column; }
 [data-sa-gh]::before { content: attr(data-sa-gh); display: block; margin: 8px 8px 2px; padding-left: 6px; padding-top: calc(min(var(--sa-n, 0), 1) * 4px); border-left: 2px solid var(--sa-g, gray);
   background: repeating-linear-gradient(90deg, var(--sa-g, gray) 0 4px, transparent 4px 6px) 3px 0 / calc(var(--sa-n, 0) * 6px - 2px) 2px no-repeat;
-  font-size: 10px; line-height: 12px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase; color: var(--muted-foreground, gray); }
+  font-family: var(--cl-font-display, inherit); font-size: var(--cl-text-11, 11px); line-height: 12px; font-weight: 600; letter-spacing: var(--cl-track-label, .1em); text-transform: uppercase; color: var(--cl-text-subtle, var(--muted-foreground, gray)); }
 [data-sa-depth] [data-sidebar-rename-row] { padding-left: calc(8px + var(--sa-depth) * 14px) !important; }
 .sa-spawn { flex: none; margin-right: 4px; font-size: 11px; line-height: 1; color: var(--muted-foreground, gray); opacity: .8; cursor: default; pointer-events: auto; }
 /* Health: a red pulse in place of the agent icon. */
@@ -119,11 +119,11 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 [data-sa-health]::before { content: ""; width: 14px; height: 14px; flex: none; background-color: var(--sa-agent);
   -webkit-mask: var(--sa-icon) center / contain no-repeat; mask: var(--sa-icon) center / contain no-repeat; }
 [data-provider-icon-tint][data-sa-health]::before { width: 16px; height: 16px; }
-[data-sa-health] { --sa-agent: #e5484d; --sa-icon: ${PULSE}; }
-[data-sa-health][data-sa-agent] { --sa-agent: #e5484d; --sa-icon: ${PULSE}; }
+[data-sa-health] { --sa-agent: var(--cl-attention, var(--destructive, red)); --sa-icon: ${PULSE}; }
+[data-sa-health][data-sa-agent] { --sa-agent: var(--cl-attention, var(--destructive, red)); --sa-icon: ${PULSE}; }
 /* Priority: a flat full-width tint and an icon, until archived or cleared. */
-[data-sa-prio="blocking"] { --sa-p: light-dark(#d03a3a, #ff6b6b); }
-[data-sa-prio="urgent"] { --sa-p: light-dark(#c26a05, #f0b44c); }
+[data-sa-prio="blocking"] { --sa-p: var(--cl-attention, var(--destructive, red)); }
+[data-sa-prio="urgent"] { --sa-p: var(--cl-wobble, var(--primary, orange)); }
 [data-sa-prio] { background-color: color-mix(in srgb, var(--sa-p) 15%, transparent) !important; border-radius: 0 !important; }
 .sa-prio { width: 13px; height: 13px; flex: none; margin-left: 6px; align-self: center; pointer-events: auto; background-color: var(--sa-p);
   -webkit-mask: var(--sa-prio-icon) center / contain no-repeat; mask: var(--sa-prio-icon) center / contain no-repeat; }
@@ -258,7 +258,8 @@ function SessionAgents() {
     const work = pattern(workPattern, "work");
     const hostRe = pattern(hostPattern, HOST_DEFAULT);
     const claireRe = pattern(clairePattern, "claire");
-    const labelColor = work.test(label) ? "light-dark(#6a4fe0, #a48dff)" : "light-dark(#23845f, #4cc394)";
+    // The domain word is neutral: the word names the domain, and green means done (Bdon 2026-11-26).
+    const labelColor = "var(--cl-text-subtle, var(--muted-foreground))";
     const style = document.createElement("style");
     style.dataset.sessionAgents = "";
     style.textContent = CSS + `.sa-label { --sa-label: ${labelColor}; }`;
@@ -559,7 +560,7 @@ function SessionAgents() {
             if (p.depth) { item.dataset.saDepth = ""; item.style.setProperty("--sa-depth", String(p.depth)); } else { delete item.dataset.saDepth; item.style.removeProperty("--sa-depth"); }
             if (p.header) {
               item.dataset.saGh = p.header;
-              item.style.setProperty("--sa-g", isHealth(p.header) ? "#e5484d" : `hsl(${hue(p.family ?? p.header)} 38% 52%)`);
+              item.style.setProperty("--sa-g", isHealth(p.header) ? "var(--cl-attention, #ff2e55)" : `var(--cl-accent-${ACCENTS[hue(p.family ?? p.header) % ACCENTS.length]}, gray)`);
               item.style.setProperty("--sa-n", String(p.dashes));
             } else { delete item.dataset.saGh; item.style.removeProperty("--sa-g"); item.style.removeProperty("--sa-n"); }
           } else clearItem(item);
@@ -701,8 +702,7 @@ function ProjectOrder() {
   return null;
 }
 
-const PERSONAL_COLOR = "light-dark(#23845f, #4cc394)";
-const WORK_COLOR = "light-dark(#6a4fe0, #a48dff)";
+const DOMAIN_COLOR = "var(--cl-text-subtle, var(--muted-foreground))"; // neutral, like the sidebar label
 
 /**
  * The session's top bar, before its title: "<server> · <agent icon> <folder> <project> /". bb has no slot there, so
@@ -786,7 +786,7 @@ function SessionHeader() {
           aria-label={summary}
           aria-expanded={open}
           className="mr-1.5 flex cursor-pointer items-center gap-1.5 rounded-sm px-1 py-0.5 text-sm hover:bg-state-hover"
-          style={{ ["--sa-server" as string]: work.test(label) ? WORK_COLOR : PERSONAL_COLOR }}
+          style={{ ["--sa-server" as string]: DOMAIN_COLOR }}
         >
           <span className="sa-server font-medium">{label}</span>
           <span className="sa-sep text-muted-foreground">·</span>
