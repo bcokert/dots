@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="darkreader-lock">
+<title>Clarity design system: specimen</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="tokens.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+* { -webkit-tap-highlight-color: transparent; }
+html { background: var(--cl-bg); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0; color: var(--cl-text); font: 400 var(--cl-text-14)/20px var(--cl-font-body); -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1100px 520px at 50% -240px, color-mix(in srgb, var(--cl-primary) 14%, transparent), transparent 65%),
+    linear-gradient(var(--cl-grid) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, var(--cl-grid) 1px, transparent 1px) 0 0 / 32px 32px,
+    var(--cl-bg);
+  padding: var(--cl-space-6) max(var(--cl-space-6), env(safe-area-inset-right)) var(--cl-space-8) max(var(--cl-space-6), env(safe-area-inset-left));
+}
+button { font: inherit; color: inherit; cursor: pointer; -webkit-appearance: none; appearance: none; border-radius: var(--cl-radius-lg); }
+h1, h2, h3, p { margin: 0; }
+:focus-visible { outline: 2px solid var(--cl-focus); outline-offset: 2px; }
+.wrap { max-width: 1440px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--cl-space-4); }
+.ic { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ---- page chrome ---- */
+.top { display: flex; align-items: baseline; gap: var(--cl-space-6); flex-wrap: wrap; padding: var(--cl-space-4) 0 var(--cl-space-5); border-bottom: 1px solid var(--cl-line); }
+.top h1 { font: 600 var(--cl-text-20)/28px var(--cl-font-display); letter-spacing: var(--cl-track-display); text-transform: uppercase; color: var(--cl-text-strong); }
+.cp { font: 500 var(--cl-text-11)/16px var(--cl-font-mono); letter-spacing: var(--cl-track-mono); color: var(--cl-text-muted); }
+.lb { font: 600 var(--cl-text-11)/16px var(--cl-font-display); letter-spacing: var(--cl-track-label); text-transform: uppercase; color: var(--cl-text-subtle); }
+.mono { font-family: var(--cl-font-mono); letter-spacing: var(--cl-track-mono); font-feature-settings: "tnum"; }
+
+/* ---- outer panel: edge, accent gradient, flat accent bar ---- */
+.pn { position: relative; border: 1px solid var(--cl-line); border-radius: var(--cl-radius-lg); min-width: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--cl-accent) 5%, var(--cl-panel-2)), var(--cl-panel) 70%); }
+.pn::before { content: ""; position: absolute; z-index: 1; top: -1px; left: -1px; width: var(--cl-edge-bar); height: 2px; background: var(--cl-accent); border-radius: var(--cl-radius-sm); pointer-events: none; }
+.pn > .bd { padding: var(--cl-space-2) var(--cl-space-6) var(--cl-space-6); display: flex; flex-direction: column; gap: var(--cl-space-6); }
+.hd { display: flex; align-items: center; gap: var(--cl-space-4); padding: var(--cl-space-5) var(--cl-space-6) var(--cl-space-4); font: 600 var(--cl-text-16)/20px var(--cl-font-display); letter-spacing: var(--cl-track-display); text-transform: uppercase; color: var(--cl-text-strong); }
+.hd::before { content: ""; width: 7px; height: 7px; flex: none; background: var(--cl-accent); border-radius: var(--cl-radius-sm); }
+.hd .cp { margin-left: auto; text-transform: none; letter-spacing: var(--cl-track-mono); }
+.hd.sm { padding: var(--cl-space-4) var(--cl-space-5) var(--cl-space-3); font-size: var(--cl-text-12); line-height: 16px; letter-spacing: var(--cl-track-label); }
+.hd.sm::before { width: 5px; height: 5px; }
+.box { background: var(--cl-fill); border-radius: var(--cl-radius-lg); min-width: 0; }
+.cols { display: grid; gap: var(--cl-space-4); grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr)); align-items: start; }
+.cols.w2 { grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); }
+.cols.n { grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); }
+.it { display: flex; flex-direction: column; gap: var(--cl-space-3); min-width: 0; padding: var(--cl-space-5); }
+.it > .demo { display: flex; align-items: center; gap: var(--cl-space-4); flex-wrap: wrap; min-height: 28px; }
+.sec { display: flex; flex-direction: column; gap: var(--cl-space-4); }
+
+/* ---- marks and states ---- */
+.mk { display: block; flex: none; width: 12px; height: 12px; border-radius: var(--cl-radius-sm); background: var(--cl-unset); }
+.mk.hit { background: var(--cl-good); box-shadow: 0 0 var(--cl-glow-sm) color-mix(in srgb, var(--cl-good) 55%, transparent); }
+.mk.miss { background: var(--cl-attention); box-shadow: 0 0 var(--cl-glow-sm) color-mix(in srgb, var(--cl-attention) 55%, transparent); }
+.mk.future { background: var(--cl-future); }
+.mk.today { position: relative; z-index: 1; background: var(--cl-today); box-shadow: 0 0 var(--cl-glow) 2px color-mix(in srgb, var(--cl-today) 70%, transparent); }
+.mk.today.hit { background: var(--cl-today-good); box-shadow: 0 0 var(--cl-glow) 2px color-mix(in srgb, var(--cl-good) 85%, transparent); }
+.mk.today.miss { background: var(--cl-today-attention); box-shadow: 0 0 var(--cl-glow) 2px color-mix(in srgb, var(--cl-attention) 85%, transparent); }
+.mk.lg { width: 22px; height: 22px; }
+.st { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: var(--cl-radius-sm); }
+.st.saved { background: var(--cl-good); } .st.sync { background: var(--cl-wobble); } .st.err { background: var(--cl-attention); }
+
+/* ---- chips ---- */
+.chip { display: inline-flex; align-items: center; gap: var(--cl-space-2); height: 20px; padding: 0 var(--cl-space-3); border-radius: var(--cl-radius-sm); background: var(--cl-fill-2); color: var(--cl-text-subtle); font: 500 var(--cl-text-11)/1 var(--cl-font-mono); letter-spacing: var(--cl-track-mono); text-decoration: none; white-space: nowrap; }
+.chip.sm { height: 18px; font-size: var(--cl-text-10); padding: 0 var(--cl-space-3) 0 5px; }
+.chip.live { color: var(--cl-text-strong); background: color-mix(in srgb, var(--cl-live) 15%, transparent); box-shadow: 0 0 var(--cl-glow) 1px color-mix(in srgb, var(--cl-live) 45%, transparent); }
+.chip.lead, .chip.worker { color: var(--cl-text); }
+.chip.problem { color: var(--cl-attention); background: color-mix(in srgb, var(--cl-attention) 16%, transparent); }
+a.chip:hover { filter: brightness(1.35); }
+.wi { display: inline-block; flex: none; width: 14px; height: 14px; background-color: var(--cl-agent); -webkit-mask: center / contain no-repeat; mask: center / contain no-repeat; }
+.chip.live .wi { background-color: var(--cl-live); }
+/* a live mark where no chip fits (a card's row): the icon alone, lit and glowing, never a filled box */
+.wmk { display: inline-flex; flex: none; filter: drop-shadow(0 0 3px var(--cl-live)); } .wmk .wi { width: 11px; height: 11px; background-color: var(--cl-live); }
+.chip.problem .wi { background-color: currentColor; }
+.chip .wi { width: 12px; height: 12px; }
+
+/* ---- buttons, segmented, inputs ---- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--cl-space-3); height: 30px; padding: 0 var(--cl-space-5); border: 0; background: var(--cl-fill-2); font: 600 var(--cl-text-11)/1 var(--cl-font-display); letter-spacing: var(--cl-track-display); text-transform: uppercase; color: var(--cl-text-subtle); white-space: nowrap; transition: background var(--cl-fast), color var(--cl-fast); }
+.btn.primary { background: var(--cl-primary); color: var(--cl-on-bright); }
+.btn.icon { width: 30px; padding: 0; }
+.btn.is-hover { background: var(--cl-fill-3); color: var(--cl-text-strong); }
+.btn.is-focus { outline: 2px solid var(--cl-focus); outline-offset: 2px; }
+.btn:disabled { opacity: .35; pointer-events: none; }
+.btn[aria-pressed="true"] { color: var(--cl-text-strong); background: var(--cl-selected); }
+.seg { display: inline-flex; gap: var(--cl-space-2); }
+.seg .btn { height: 34px; }
+.inp { height: 34px; width: 100%; max-width: 240px; padding: 0 var(--cl-space-5); border: 0; border-radius: var(--cl-radius-lg); background: var(--cl-fill-2); color: var(--cl-text-strong); font: 500 var(--cl-text-13)/20px var(--cl-font-body); }
+.inp::placeholder { color: var(--cl-text-muted); }
+.inp:focus { outline: 2px solid var(--cl-focus); outline-offset: 2px; background: var(--cl-fill-3); }
+@media (hover: hover) {
+  .btn:hover { background: var(--cl-fill-3); color: var(--cl-text-strong); }
+  .btn.primary:hover { background: var(--cl-primary); filter: brightness(1.15); }
+  .btn[aria-pressed="true"]:hover { background: var(--cl-selected); }
+  .inp:hover { background: var(--cl-fill-3); }
+}
+
+/* ---- tabs ---- */
+.tabs { display: flex; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid var(--cl-line); }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs button { position: relative; flex: none; display: inline-flex; align-items: baseline; gap: var(--cl-space-4); height: 40px; padding: 0 var(--cl-space-6); border: 0; border-radius: 0; background: none; font: 600 var(--cl-text-13)/40px var(--cl-font-display); letter-spacing: var(--cl-track-display); text-transform: uppercase; color: var(--cl-text-muted); }
+.tabs button[aria-current="true"] { color: var(--cl-text-strong); }
+.tabs button[aria-current="true"]::after { content: ""; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--cl-primary); box-shadow: 0 0 var(--cl-glow) var(--cl-primary); }
+.tabs b { font: 700 var(--cl-text-12)/1 var(--cl-font-mono); letter-spacing: 0; color: var(--cl-info); }
+@media (hover: hover) { .tabs button:hover { color: var(--cl-text-strong); } }
+
+/* ---- check control ---- */
+.rg { flex: none; width: var(--cl-target); height: var(--cl-target); display: grid; place-items: center; border: 0; background: none; padding: 0; }
+.rg i { display: grid; place-items: center; width: 22px; height: 22px; border-radius: var(--cl-radius-sm); background: var(--cl-unset); transition: background var(--cl-fast), box-shadow var(--cl-fast); }
+.rg svg { width: 14px; height: 14px; display: none; color: var(--cl-on-bright); fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.rg[data-s="hit"] i, .rg[data-s="done"] i { background: var(--cl-good); box-shadow: 0 0 var(--cl-glow-sm) color-mix(in srgb, var(--cl-good) 60%, transparent); }
+.rg[data-s="hit"] .ok, .rg[data-s="done"] .ok { display: block; }
+.rg[data-s="miss"] i { background: var(--cl-attention); box-shadow: 0 0 var(--cl-glow-sm) color-mix(in srgb, var(--cl-attention) 60%, transparent); }
+.rg[data-s="miss"] .no { display: block; color: var(--cl-text-strong); }
+
+/* ---- trend strip, history grid ---- */
+.strip { display: flex; align-items: center; gap: 3px; padding: var(--cl-space-5); margin: calc(var(--cl-space-5) * -1); }
+.strip .mk { width: 11px; height: 11px; }
+.hgrid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(7, 14px); grid-auto-columns: 14px; gap: 3px; padding: var(--cl-space-5); margin: calc(var(--cl-space-5) * -1); width: max-content; max-width: none; }
+.hgrid button { padding: 0; border: 0; width: 14px; height: 14px; }
+.hgwrap { overflow: hidden; padding: 0; }
+
+/* ---- rank bar: one track filled at full strength; names and value sit on it with a dark halo, no box ---- */
+.rk { position: relative; display: flex; align-items: center; gap: var(--cl-space-4); height: 28px; padding: 0 var(--cl-space-4); border-radius: var(--cl-radius-sm); background: var(--cl-fill); overflow: hidden; }
+.rk::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--pct); background: linear-gradient(90deg, var(--cl-rank-lo), color-mix(in oklab, var(--cl-rank-hi) var(--pct), var(--cl-rank-lo))); }
+.rk .tk { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--cl-space-4); font: 500 var(--cl-text-12)/1 var(--cl-font-body); }
+.rk .tk > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: var(--cl-halo); }
+.rk .lo { color: var(--cl-rank-lo-text); }
+.rk .hi { margin-left: auto; color: var(--cl-rank-hi-text); font-weight: 600; }
+.rk .v { position: relative; flex: none; min-width: 28px; text-align: right; font: 700 var(--cl-text-13)/1 var(--cl-font-mono); color: var(--cl-text-strong); text-shadow: var(--cl-halo-lit); }
+
+/* ---- breadcrumbs ---- */
+.crumbs { display: flex; align-items: center; gap: var(--cl-space-1); flex-wrap: wrap; font: 500 var(--cl-text-11)/18px var(--cl-font-mono); letter-spacing: var(--cl-track-mono); text-transform: uppercase; color: var(--cl-text-muted); }
+.crumbs a { color: inherit; text-decoration: none; padding: 2px 4px; }
+.crumbs a:hover { color: var(--cl-text-strong); }
+.crumbs .ic { width: 10px; height: 10px; opacity: .6; }
+.crumbs .cur { color: var(--cl-accent); padding: 2px 4px; }
+
+/* ---- tooltip ---- */
+.tip { display: inline-block; max-width: 320px; padding: var(--cl-space-3) var(--cl-space-4); border: 1px solid var(--cl-line-2); border-radius: var(--cl-radius-lg); background: var(--cl-overlay); color: var(--cl-text-strong); font: 500 var(--cl-text-12)/18px var(--cl-font-body); }
+#tip { position: fixed; z-index: 30; display: none; pointer-events: none; }
+#tip.on { display: block; }
+
+/* ---- toast ---- */
+.toast { padding: var(--cl-space-4) var(--cl-space-6); border: 1px solid var(--cl-attention); border-radius: var(--cl-radius-lg); background: var(--cl-attention-surface); color: var(--cl-text-strong); font-size: var(--cl-text-13); }
+
+/* ---- project card, todo rows (paper) ---- */
+.pc { display: flex; flex-direction: column; gap: var(--cl-space-3); padding: var(--cl-space-5) var(--cl-space-5); border-radius: var(--cl-radius-lg); background: var(--cl-fill); max-width: 280px; }
+.pc .t { font: 600 var(--cl-text-13)/17px var(--cl-font-display); letter-spacing: var(--cl-track-label); text-transform: uppercase; color: var(--cl-text-strong); }
+.pc .c { font: 700 var(--cl-text-11)/1 var(--cl-font-mono); color: var(--cl-accent); }
+.pc ul { margin: var(--cl-space-1) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--cl-space-2); }
+.pc li { display: flex; align-items: center; gap: var(--cl-space-4); font-size: var(--cl-text-12); line-height: 16px; color: var(--cl-text); }
+.pc li::before { content: ""; width: 8px; height: 8px; flex: none; border-radius: var(--cl-radius-sm); background: var(--cl-unset); }
+.pc li.more { color: var(--cl-text-muted); font: 600 var(--cl-text-11)/16px var(--cl-font-mono); }
+.pc li.more::before { display: none; }
+.paper { display: flex; flex-direction: column; }
+.row { display: flex; align-items: center; gap: var(--cl-space-4); min-height: var(--cl-target-sm); padding: 0 var(--cl-space-2); border-top: 1px solid var(--cl-line); color: var(--cl-text-strong); font-weight: 500; }
+.row:first-child { border-top: 0; }
+.row .rg { margin: 0 calc(var(--cl-space-3) * -1) 0 calc(var(--cl-space-5) * -1); }
+.row .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row[data-done] .t { color: var(--cl-text-muted); }
+.prose { max-width: 62ch; border-top: 1px solid var(--cl-line); padding-top: var(--cl-space-5); }
+.prose h3 { font: 600 var(--cl-text-16)/22px var(--cl-font-display); letter-spacing: var(--cl-track-display); text-transform: uppercase; color: var(--cl-text-strong); margin-bottom: var(--cl-space-3); }
+.prose p { color: var(--cl-text); } .prose p + p { margin-top: var(--cl-space-4); }
+.prose small { display: block; margin-top: var(--cl-space-4); font-size: var(--cl-text-13); color: var(--cl-text-subtle); }
+
+/* ---- swatches, type, space ---- */
+.sw { display: flex; align-items: center; gap: var(--cl-space-4); min-width: 0; }
+.sw i { flex: none; width: 36px; height: 36px; border-radius: var(--cl-radius-sm); background-image: linear-gradient(var(--cl-panel-2), var(--cl-panel-2)); box-shadow: inset 0 0 0 1px var(--cl-line); position: relative; }
+.sw i::after { content: ""; position: absolute; inset: 0; border-radius: var(--cl-radius-sm); background: var(--c); }
+.sw div { min-width: 0; display: flex; flex-direction: column; }
+.sw code, .tk { font: 500 var(--cl-text-11)/16px var(--cl-font-mono); letter-spacing: var(--cl-track-mono); color: var(--cl-text-subtle); overflow-wrap: anywhere; }
+.sw span { font-size: var(--cl-text-12); line-height: 16px; color: var(--cl-text-muted); }
+.tx { display: flex; align-items: baseline; gap: var(--cl-space-4); background: var(--cl-panel-3); padding: var(--cl-space-4) var(--cl-space-5); border-radius: var(--cl-radius-lg); }
+.tx b { font-weight: 500; font-size: var(--cl-text-14); }
+.tx .r { margin-left: auto; font: 700 var(--cl-text-12)/1 var(--cl-font-mono); color: var(--cl-text-strong); }
+.rankrow { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: var(--cl-space-2); }
+.rankrow div { display: grid; place-items: center; height: 36px; border-radius: var(--cl-radius-sm); }
+.rankrow span { padding: 2px 4px; border-radius: var(--cl-radius-sm); background: var(--cl-bg); font: 700 var(--cl-text-12)/1 var(--cl-font-mono); color: var(--cl-text-strong); }
+.trow { display: grid; grid-template-columns: 150px minmax(0, 1fr) 200px; gap: var(--cl-space-5); align-items: baseline; padding: var(--cl-space-3) 0; border-top: 1px solid var(--cl-line); }
+.trow:first-child { border-top: 0; }
+.trow > :first-child { font: 600 var(--cl-text-11)/16px var(--cl-font-display); letter-spacing: var(--cl-track-label); text-transform: uppercase; color: var(--cl-text-subtle); }
+.trow .s { min-width: 0; overflow-wrap: anywhere; color: var(--cl-text-strong); }
+.scale { display: flex; align-items: baseline; gap: var(--cl-space-6); flex-wrap: wrap; }
+.scale div { display: flex; flex-direction: column; gap: var(--cl-space-1); }
+.sp { display: grid; grid-template-columns: 104px 1fr; gap: var(--cl-space-5); align-items: center; }
+.sp i { display: block; height: 12px; border-radius: var(--cl-radius-sm); background: var(--cl-primary); }
+.shapes { display: flex; gap: var(--cl-space-6); flex-wrap: wrap; align-items: flex-end; }
+.shapes > div { display: flex; flex-direction: column; align-items: flex-start; gap: var(--cl-space-3); }
+.goal { position: relative; display: flex; align-items: center; gap: var(--cl-space-6); padding: var(--cl-space-5) var(--cl-space-6) var(--cl-space-5) var(--cl-space-7); border: 1px solid var(--cl-line); border-radius: var(--cl-radius-lg); background: linear-gradient(180deg, color-mix(in srgb, var(--cl-accent) 5%, var(--cl-panel-2)), var(--cl-panel) 70%); }
+.goal::after { content: ""; position: absolute; left: -1px; top: 12px; bottom: 12px; width: 2px; background: var(--cl-accent); border-radius: var(--cl-radius-sm); }
+.goal .t { font: 600 var(--cl-text-16)/22px var(--cl-font-display); letter-spacing: var(--cl-track-display); text-transform: uppercase; color: var(--cl-accent); }
+
+/* ---- dragging ---- */
+.dl { display: flex; flex-direction: column; gap: var(--cl-space-5); width: 100%; }
+.dl > div { position: relative; display: flex; align-items: center; height: 32px; padding: 0 var(--cl-space-5); border-radius: var(--cl-radius-lg); background: var(--cl-fill); color: var(--cl-text-strong); font-size: var(--cl-text-13); }
+.dl .ghosted { opacity: .3; }
+.dl .ghost { background: var(--cl-panel-3); box-shadow: 0 0 0 1px var(--cl-info); }
+.dl .dropline::after { content: ""; position: absolute; left: 0; right: 0; top: -7px; height: 2px; background: var(--cl-info); border-radius: var(--cl-radius-sm); }
+.dl .dropinto { background: color-mix(in srgb, var(--cl-info) 18%, transparent); box-shadow: 0 0 0 1px var(--cl-info); }
+
+/* ---- progression: one ladder. A badge = its tier's silhouette (an SVG mask) + art + pips. Kinds set only thresholds ---- */
+/* silhouettes climb with the tier: square, square, diamond, hexagon, octagon, star, seal. viewBox 100, round joins */
+:root {
+  --bdg-square: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='9,9 91,9 91,91 9,91' stroke='black' stroke-width='10' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --bdg-diamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,6 94,50 50,94 6,50' stroke='black' stroke-width='9' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --bdg-hexagon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='28,12 72,12 94,50 72,88 28,88 6,50' stroke='black' stroke-width='9' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --bdg-octagon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='32,6 68,6 94,32 94,68 68,94 32,94 6,68 6,32' stroke='black' stroke-width='8' stroke-linejoin='round'/%3E%3C/svg%3E");
+  --bdg-star: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='black' stroke-width='7' stroke-linejoin='round'%3E%3Cpolygon points='19,19 81,19 81,81 19,81'/%3E%3Cpolygon points='50,6 94,50 50,94 6,50'/%3E%3C/g%3E%3C/svg%3E");
+  --bdg-seal: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cg stroke='black' stroke-width='6' stroke-linejoin='round'%3E%3Cpolygon points='19,19 81,19 81,81 19,81'/%3E%3Cpolygon points='61.5,7 7,38.5 38.5,93 93,61.5'/%3E%3Cpolygon points='38.5,7 7,61.5 61.5,93 93,38.5'/%3E%3C/g%3E%3C/svg%3E");
+}
+.ladder { display: flex; flex-wrap: wrap; gap: var(--cl-space-6) var(--cl-space-5); align-items: flex-start; }
+.ladder figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: var(--cl-space-5); min-width: 48px; }
+.ladder figcaption { display: flex; flex-direction: column; align-items: center; gap: 1px; font: 600 var(--cl-text-11)/14px var(--cl-font-display); letter-spacing: var(--cl-track-label); text-transform: uppercase; color: var(--cl-text-strong); }
+.ladder figcaption span { font: 500 var(--cl-text-10)/12px var(--cl-font-mono); letter-spacing: var(--cl-track-mono); text-transform: none; color: var(--cl-text-muted); }
+/* the box stays --bs square whatever the tier, so rows never shift; the silhouette grows a little (--k) as it climbs */
+.bdg { --bs: 30px; --k: 1; --shape: var(--bdg-square); --rw: 0px; flex: none; position: relative; display: inline-grid; place-items: center; width: var(--bs); height: var(--bs); font: 700 max(9px, calc(var(--bs) * .36))/1 var(--cl-font-mono); letter-spacing: -.02em; font-feature-settings: "tnum"; color: var(--ink, var(--cl-on-bright)); }
+.bdg > .gl { position: absolute; left: 50%; top: 50%; width: calc(var(--bs) * var(--k)); height: calc(var(--bs) * var(--k)); transform: translate(-50%, -50%); filter: drop-shadow(0 0 var(--cl-glow-sm) var(--glow, transparent)); pointer-events: none; }
+/* a rim is the silhouette in the rim colour with the art a smaller copy inside (an inset shadow would follow the box) */
+.bdg > .gl > i { position: absolute; inset: 0; background: var(--rim, var(--art)); -webkit-mask: var(--shape) center / 100% 100% no-repeat; mask: var(--shape) center / 100% 100% no-repeat; }
+.bdg > .gl > i::before { content: ""; position: absolute; inset: 0; background: var(--art); -webkit-mask: var(--shape) center / calc(100% - var(--rw) * 2) calc(100% - var(--rw) * 2) no-repeat; mask: var(--shape) center / calc(100% - var(--rw) * 2) calc(100% - var(--rw) * 2) no-repeat; }
+.bdg > b { position: relative; z-index: 1; font-weight: inherit; }
+/* pips: three thirds of a tier, studs on the bottom edge. Floor and top have none */
+.bdg > .pp { position: absolute; z-index: 1; left: 50%; bottom: calc(var(--ps) * -.5); transform: translateX(-50%); display: flex; gap: max(2px, calc(var(--ps) * .5)); --ps: clamp(3px, calc(var(--bs) * .13), 5px); }
+.bdg > .pp i { width: var(--ps); height: var(--ps); border-radius: 1px; background: var(--cl-pip-unlit); box-shadow: 0 0 0 1.5px var(--cl-panel-2); }
+.bdg[data-p="1"] .pp i:nth-child(-n+1), .bdg[data-p="2"] .pp i:nth-child(-n+2), .bdg[data-p="3"] .pp i { background: var(--cl-pip-lit); }
+/* marked today: a corner mark, never a fade of the badge */
+.bdg[data-m]::after { position: absolute; z-index: 2; top: calc(var(--bs) * -.16); right: calc(var(--bs) * -.16); width: clamp(10px, calc(var(--bs) * .42), 14px); height: clamp(10px, calc(var(--bs) * .42), 14px); border-radius: var(--cl-radius-sm); font: 700 8px/1 var(--cl-font-body); display: grid; place-items: center; box-shadow: 0 0 0 2px var(--cl-panel-2); }
+.bdg[data-m="hit"]::after { content: "\2713"; background: var(--cl-good); color: var(--cl-on-bright); }
+.bdg[data-m="miss"]::after { content: "\2715"; background: var(--cl-attention); color: var(--cl-text-strong); }
+
+/* the tiers */
+.bdg[data-t="new"] > .gl { display: none; }                       /* nothing marked yet: no badge, the box keeps its room */
+.bdg[data-t="dormant"] { --art: linear-gradient(160deg, var(--cl-tier-dormant-hi), var(--cl-tier-dormant-lo)); --ink: var(--cl-tier-dormant-ink); }
+.bdg[data-t="kindled"] { --c: color-mix(in oklch, var(--cl-tier-kindled-hi) var(--f, 0%), var(--cl-tier-kindled-lo)); --art: var(--c); --glow: color-mix(in srgb, var(--c) calc(55% + var(--f, 0%) * .4), transparent); --ink: var(--cl-tier-kindled-ink); }
+.bdg[data-t="diamond"] { --shape: var(--bdg-diamond); --k: 1.3; --ink: var(--cl-tier-diamond-ink); --glow: color-mix(in srgb, var(--cl-tier-diamond-glow) calc(45% + var(--f, 0%) * .4), transparent); text-shadow: 0 1px 2px rgba(0, 20, 60, .7);
+  --art: linear-gradient(135deg, rgba(255, 255, 255, .45) 0 30%, transparent 30% 50%, rgba(255, 255, 255, .18) 50% 62%, transparent 62%), color-mix(in oklab, var(--cl-tier-diamond-hi) var(--f, 0%), var(--cl-tier-diamond-lo)); }
+.bdg[data-t="plasma"] { --shape: var(--bdg-hexagon); --k: 1.16; --ink: #fff; --glow: color-mix(in srgb, var(--cl-tier-plasma-glow) 80%, transparent); text-shadow: 0 1px 2px rgba(40, 0, 60, .6);
+  --art: radial-gradient(circle at 34% 30%, var(--cl-tier-plasma-core) 0, var(--cl-tier-plasma-hi) 32%, var(--cl-tier-plasma-mid) 70%, var(--cl-tier-plasma-lo) 100%); }
+.bdg[data-t="plasma"] > .gl > i { animation: bdg-plasma 3.2s ease-in-out infinite alternate; }
+@keyframes bdg-plasma { from { filter: hue-rotate(-12deg) brightness(1); } to { filter: hue-rotate(14deg) brightness(1.18); } }
+.bdg[data-t="antimatter"] { --shape: var(--bdg-octagon); --k: 1.14; --ink: var(--cl-tier-antimatter-ink); --glow: color-mix(in srgb, var(--cl-tier-antimatter-glow) 90%, transparent); --rim: var(--cl-tier-antimatter-rim); --rw: max(1.5px, calc(var(--bs) * .06));
+  --art: radial-gradient(circle, var(--cl-tier-antimatter-core) 0 40%, var(--cl-tier-antimatter-lo) 62%, var(--cl-tier-antimatter-hi) 90%, var(--cl-tier-antimatter-rim) 100%); }
+.bdg[data-t="reality"] { --shape: var(--bdg-star); --k: 1.28; --ink: var(--cl-tier-reality-ink); --glow: color-mix(in srgb, var(--cl-tier-reality-gold) 90%, transparent);
+  --art: conic-gradient(from 210deg, var(--cl-tier-reality-gold), var(--cl-tier-reality-white), var(--cl-tier-reality-cyan), var(--cl-tier-reality-pink), var(--cl-tier-reality-white), var(--cl-tier-reality-gold)); }
+.bdg[data-t="reality"] > .gl > i { animation: bdg-reality 6s linear infinite; }
+@keyframes bdg-reality { to { filter: hue-rotate(360deg) saturate(1.1); } }
+.bdg[data-t="ascended"] { --shape: var(--bdg-seal); --k: 1.32; --ink: var(--cl-tier-ascended-ink);
+  --art: radial-gradient(circle, var(--cl-tier-ascended-core) 0 45%, var(--cl-tier-ascended-mid) 70%, var(--cl-tier-ascended-edge) 100%); }
+.bdg[data-t="ascended"] > .gl { filter: drop-shadow(0 0 4px var(--cl-tier-ascended-core)) drop-shadow(0 0 10px var(--cl-tier-reality-cyan)) drop-shadow(0 0 16px var(--cl-tier-reality-gold)); }
+/* broken is a state, not a tier: the floor's art inside an attention rim, glowing (only kinds that can break show it) */
+.bdg[data-s="broken"] { --rim: var(--cl-attention); --rw: max(1.5px, calc(var(--bs) * .08)); --glow: color-mix(in srgb, var(--cl-attention) 75%, transparent); --ink: var(--cl-text-strong); }
+
+/* the specimen's tables around the ladder */
+.thr { width: 100%; max-width: 760px; border-collapse: collapse; font: 500 var(--cl-text-12)/16px var(--cl-font-mono); letter-spacing: var(--cl-track-mono); font-feature-settings: "tnum"; }
+.thr th, .thr td { padding: var(--cl-space-3) var(--cl-space-3); border-top: 1px solid var(--cl-line); white-space: nowrap; }
+.thr thead th { border-top: 0; font: 600 var(--cl-text-10)/12px var(--cl-font-display); letter-spacing: var(--cl-track-label); text-transform: uppercase; color: var(--cl-text-subtle); text-align: right; white-space: normal; vertical-align: bottom; }
+.thr tbody th { text-align: left; }
+.thr tbody th div { display: flex; align-items: center; gap: var(--cl-space-5); font: 600 var(--cl-text-11)/16px var(--cl-font-display); letter-spacing: var(--cl-track-label); text-transform: uppercase; color: var(--cl-text-strong); }
+.thr td { text-align: right; color: var(--cl-text-strong); }
+.thrwrap { padding-top: var(--cl-space-2); }
+.try { display: flex; align-items: center; gap: var(--cl-space-6); flex-wrap: wrap; }
+.try input[type=range] { width: min(260px, 100%); accent-color: var(--cl-primary); }
+.try .out { display: flex; align-items: center; gap: var(--cl-space-6); min-height: 60px; }
+.try .rd { display: flex; flex-direction: column; gap: 2px; }
+.try .rd b { font: 600 var(--cl-text-13)/16px var(--cl-font-display); letter-spacing: var(--cl-track-label); text-transform: uppercase; color: var(--cl-text-strong); }
+.ctx { display: flex; flex-direction: column; gap: var(--cl-space-5); }
+.ctx .hab { display: flex; align-items: center; gap: var(--cl-space-5); }
+.ctx .hab .t { flex: 1; min-width: 0; font-weight: 500; color: var(--cl-text-strong); }
+.ctx .hab[data-done] .t { color: var(--cl-text-muted); }
+.ctx .grp { display: flex; align-items: center; gap: var(--cl-space-5); font: 600 var(--cl-text-12)/16px var(--cl-font-display); letter-spacing: var(--cl-track-label); text-transform: uppercase; color: var(--cl-text-strong); }
+.ctx .grp .rk { flex: 1; }
+
+/* ---- phone mock ---- */
+.phone { width: min(390px, 100%); border: 1px solid var(--cl-line-2); border-radius: var(--cl-radius-lg); background: var(--cl-bg); overflow: hidden; display: flex; flex-direction: column; }
+.phone .scr { height: 300px; padding: var(--cl-space-5); display: flex; flex-direction: column; gap: var(--cl-space-4); overflow: hidden; }
+.phone .scr .box { padding: var(--cl-space-5); }
+.ptabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: var(--cl-space-1) var(--cl-space-2); background: var(--cl-panel); border-top: 1px solid var(--cl-line); }
+.ptabs button { position: relative; height: 58px; padding: 0; border: 0; border-radius: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--cl-space-2); font: 600 var(--cl-text-10)/12px var(--cl-font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--cl-text-muted); }
+.ptabs svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+.ptabs b { position: absolute; top: 6px; left: calc(50% + 9px); font: 700 var(--cl-text-10)/1 var(--cl-font-mono); color: var(--cl-info); }
+.ptabs button[aria-current="true"] { color: var(--cl-text-strong); }
+.ptabs button[aria-current="true"]::after { content: ""; position: absolute; top: -2px; left: 28%; right: 28%; height: 2px; background: var(--cl-primary); box-shadow: 0 0 var(--cl-glow) var(--cl-primary); }
+
+@media (max-width: 767px) {
+  body { padding-inline: var(--cl-space-5); }
+  .pn > .bd { padding-inline: var(--cl-space-5); }
+  .hd { padding-inline: var(--cl-space-5); }
+  .trow { grid-template-columns: minmax(0, 1fr) auto; }
+  .trow > :first-child { grid-column: 1 / -1; }
+  .goal { flex-wrap: wrap; }
+  .thr { font-size: var(--cl-text-11); }
+  .thr th, .thr td { padding-inline: var(--cl-space-2); }
+  .thr tbody th div { gap: var(--cl-space-4); font-size: var(--cl-text-10); }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top"><h1>Clarity design system</h1><span class="cp">specimen · tokens.css · dark only · every token, shape, state and component</span></header>
+
+  <!-- ===================== COLOUR ===================== -->
+  <section class="pn" data-accent="teal"><h2 class="hd">Colour<span class="cp">tokens.css</span></h2><div class="bd">
+    <div class="sec"><div class="lb">Surfaces</div><div class="cols n" id="surf"></div></div>
+    <div class="sec"><div class="lb">Text tiers · contrast vs --cl-panel-3</div><div class="cols" id="texts"></div></div>
+    <div class="sec"><div class="lb">Meanings</div><div class="cols" id="means"></div></div>
+    <div class="sec"><div class="lb">Rank scale 0-10 · --cl-rank-lo to --cl-rank-hi</div><div class="rankrow" id="ranks"></div></div>
+    <div class="sec"><div class="lb">Accents · edge bar, heading square and title only</div><div class="cols n" id="accents"></div></div>
+  </div></section>
+
+  <!-- ===================== SHAPE ===================== -->
+  <section class="pn" data-accent="cyan"><h2 class="hd">Shape<span class="cp">radius 2 and 4, never a circle</span></h2><div class="bd">
+    <div class="cols w2">
+      <div class="box it"><div class="lb">Radius 2 · --cl-radius-sm</div>
+        <div class="shapes">
+          <div><span class="mk lg hit"></span><span class="cp">mark</span></div>
+          <div><span class="chip">12:04</span><span class="cp">chip</span></div>
+          <div><span class="st saved"></span><span class="cp">status square</span></div>
+        </div></div>
+      <div class="box it"><div class="lb">Radius 4 · --cl-radius-lg</div>
+        <div class="shapes">
+          <div><div class="pn" style="width:88px;height:44px"></div><span class="cp">panel</span></div>
+          <div><button class="btn">Button</button><span class="cp">button</span></div>
+          <div><input class="inp" style="width:120px" placeholder="Input"><span class="cp">input</span></div>
+        </div></div>
+    </div>
+    <div class="cols w2">
+      <div class="sec"><div class="lb">Outer panel · accent bar top-left, flat</div>
+        <div class="pn" data-accent="violet"><div class="hd">Panel heading</div><div class="bd"><span class="cp">1px --cl-line edge · accent 5% into --cl-panel-2 down to --cl-panel</span></div></div></div>
+      <div class="sec"><div class="lb">Goal row · bar down the left edge</div>
+        <div class="goal" data-accent="gold"><span class="t">Goal name</span><span class="cp">row of boxes and marks</span></div></div>
+    </div>
+  </div></section>
+
+  <!-- ===================== TYPE ===================== -->
+  <section class="pn" data-accent="blue"><h2 class="hd">Type<span class="cp">Chakra Petch · Inter · JetBrains Mono</span></h2><div class="bd">
+    <div class="cols" style="grid-template-columns:minmax(0,1fr)">
+      <div class="sec" id="roles"></div>
+      <div class="sec"><div class="lb">The 8-step scale</div><div class="scale" id="scale"></div></div>
+    </div>
+  </div></section>
+
+  <!-- ===================== SPACE ===================== -->
+  <section class="pn" data-accent="violet"><h2 class="hd">Space<span class="cp">2 4 6 8 12 16 24 32 · gaps between cells 8 (6 phone), between items 4</span></h2><div class="bd">
+    <div class="cols w2" id="space"></div>
+  </div></section>
+
+  <!-- ===================== STATES ===================== -->
+  <section class="pn" data-accent="magenta"><h2 class="hd">States<span class="cp">DESIGN.md, States table</span></h2><div class="bd">
+    <div class="cols">
+      <div class="box it"><div class="lb">Unset</div><div class="demo"><span class="mk"></span><span class="mk lg"></span></div><span class="cp">--cl-unset, same size as filled</span></div>
+      <div class="box it"><div class="lb">Hit</div><div class="demo"><span class="mk hit"></span><span class="mk lg hit"></span></div><span class="cp">--cl-good, glow-sm</span></div>
+      <div class="box it"><div class="lb">Done</div><div class="demo"><span class="mk lg hit"></span><span style="color:var(--cl-text-muted)">Send the invoice</span></div><span class="cp">green mark, muted text, no strikethrough</span></div>
+      <div class="box it"><div class="lb">Missed</div><div class="demo"><span class="mk miss"></span><span class="mk lg miss"></span></div><span class="cp">--cl-attention, glow-sm</span></div>
+      <div class="box it"><div class="lb">Today</div><div class="demo"><span class="mk today"></span><span class="mk today hit"></span><span class="mk today miss"></span></div><span class="cp">solid, glows in its own colour: unmarked, hit, missed</span></div>
+      <div class="box it"><div class="lb">Future</div><div class="demo"><span class="mk future"></span><span class="mk lg future"></span></div><span class="cp">--cl-future</span></div>
+      <div class="box it"><div class="lb">Selected / pressed</div><div class="demo"><button class="btn" aria-pressed="true">Pressed</button><button class="btn">Normal</button></div><span class="cp">18% --cl-primary tint, no outline</span></div>
+      <div class="box it"><div class="lb">Hover</div><div class="demo"><button class="btn">Rest</button><button class="btn is-hover">Hover</button></div><span class="cp">--cl-fill-2 to --cl-fill-3</span></div>
+      <div class="box it"><div class="lb">Focus</div><div class="demo"><button class="btn is-focus">Focused</button></div><span class="cp">2px --cl-focus, offset 2, keyboard only</span></div>
+      <div class="box it"><div class="lb">Disabled</div><div class="demo"><button class="btn" disabled>Disabled</button></div><span class="cp">35% opacity, no pointer</span></div>
+      <div class="box it"><div class="lb">Live</div><div class="demo"><span class="chip live"><i class="wi" data-i="briefcase"></i>4m</span><span class="chip"><i class="wi" data-i="briefcase"></i>4m</span><span class="wmk"><i class="wi" data-i="briefcase"></i></span><span class="wmk"><i class="wi" data-i="unk"></i></span></div><span class="cp">chip tinted and glowing --cl-live, vs idle · a mark alone: the icon lit, never a box · ? = unknown agent</span></div>
+      <div class="box it"><div class="lb">Saving</div><div class="demo"><span class="st saved"></span><span class="cp">saved</span><span class="st sync"></span><span class="cp">syncing</span><span class="st err"></span><span class="cp">error</span></div><span class="cp">status square: colour plus label</span></div>
+      <div class="box it" ><div class="lb">Dragging · ghost · drop line · drop-into</div>
+        <div class="dl"><div class="ghosted">Item being dragged</div><div class="ghost">Ghost</div><div class="dropline">Drop line above</div><div class="dropinto">Drop into</div></div>
+        <span class="cp">30% · --cl-panel-3 + --cl-info edge · --cl-info</span></div>
+      <div class="box it"><div class="lb">Error</div><div class="toast">Could not save: the file changed on disk.</div><span class="cp">--cl-attention-surface, --cl-attention edge</span></div>
+    </div>
+  </div></section>
+
+  <!-- ===================== COMPONENTS ===================== -->
+  <section class="pn" data-accent="gold"><h2 class="hd">Components<span class="cp">life.html has the working code</span></h2><div class="bd">
+    <div class="cols">
+      <div class="box it"><div class="lb">Chip · 18 / 20</div>
+        <div class="demo"><span class="chip sm">12:04</span><span class="chip">12:04</span></div>
+        <div class="demo"><span class="chip sm live"><i class="wi" data-i="house"></i>2m</span><span class="chip sm lead"><i class="wi" data-i="crown"></i>lead</span><span class="chip sm worker"><i class="wi" data-i="branch"></i>worker</span><span class="chip sm problem">! 2 problems</span></div>
+        <div class="demo"><span class="chip live"><i class="wi" data-i="house"></i>2m</span><span class="chip lead"><i class="wi" data-i="crown"></i>lead</span><span class="chip worker"><i class="wi" data-i="branch"></i>worker</span><span class="chip problem">! 2 problems</span></div>
+        <span class="cp">variants by meaning only</span></div>
+      <div class="box it"><div class="lb">Button</div>
+        <div class="demo"><button class="btn primary">Save</button><button class="btn">Cancel</button><button class="btn icon" aria-label="Add"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div>
+        <span class="cp">one primary per screen at most · icon-only on phones</span></div>
+      <div class="box it"><div class="lb">Segmented control</div>
+        <div class="seg" id="seg"><button class="btn" aria-pressed="true">Day</button><button class="btn" aria-pressed="false">Week</button><button class="btn" aria-pressed="false">Month</button></div>
+        <span class="cp">the pressed one takes the selected state</span></div>
+      <div class="box it" style="grid-column: 1 / -1"><div class="lb">Tabs with counts</div>
+        <div class="tabs" id="tabs"><button aria-current="true">Purpose <b>6</b></button><button>Habits <b>14</b></button><button>Todos <b>23</b></button><button>Checkin <b>3</b></button><button>Projects <b>9</b></button></div>
+        <span class="cp">current = glowing 2px underline · count in mono --cl-info</span></div>
+      <div class="box it"><div class="lb">Check control · binary</div>
+        <div class="demo"><button class="rg" data-kind="bin" data-s="unset" aria-label="Done"></button><span class="cp">unset → done</span></div></div>
+      <div class="box it"><div class="lb">Check control · habit</div>
+        <div class="demo"><button class="rg" data-kind="hab" data-s="unset" aria-label="Habit"></button><span class="cp">unknown → hit → missed → unknown · 22px in a 44px target</span></div></div>
+      <div class="box it"><div class="lb">Trend strip</div><div class="demo"><div class="strip" id="strip"></div></div><span class="cp">newest right, today glowing</span></div>
+      <div class="box it"><div class="lb">History grid</div><div class="demo hgwrap"><div class="hgrid" id="hgrid"></div></div><span class="cp">weeks as columns, seven rows, every cell tappable</span></div>
+      <div class="box it"><div class="lb">Rank bar</div><div id="rkbars" style="display:flex;flex-direction:column;gap:var(--cl-space-3)"></div><span class="cp">low name left, high name right, the value last · all on the fill with a dark halo, no box</span></div>
+      <div class="box it"><div class="lb">Who chips</div>
+        <div class="demo" id="who"></div>
+        <div class="demo"><a class="chip live" href="#"><i class="wi" data-i="briefcase"></i>4m</a><a class="chip" href="#"><i class="wi" data-i="house"></i>2h</a><span class="chip"><i class="wi" data-i="crown"></i></span><span class="chip"><i class="wi" data-i="branch"></i></span></div>
+        <span class="cp">icon · claim (glows while live) · role crown or branch · linked to the session</span></div>
+      <div class="box it"><div class="lb">Tooltip</div>
+        <div class="demo"><span class="tip">Claude Vidyard Pod, claimed 4m ago</span></div>
+        <div class="demo"><button class="btn" data-tip="Hover or focus me: a tooltip follows the pointer">Hover for tooltip</button></div>
+        <span class="cp">--cl-overlay · --cl-line-2 edge · body 12</span></div>
+      <div class="box it"><div class="lb">Breadcrumbs</div>
+        <div class="crumbs" data-accent="teal"><a href="#">Life</a><svg class="ic" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><a href="#">Purpose</a><svg class="ic" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span class="cur">Health</span></div>
+        <span class="cp">mono 11 caps · current in the accent</span></div>
+      <div class="box it"><div class="lb">Project card</div>
+        <div class="pc" data-accent="violet"><span class="t">Clarity roadmap</span><span class="c">7 open</span><ul><li>Merge the two ladders</li><li>Specimen page</li><li>Phone tab bar</li><li class="more">+4 more</li></ul></div></div>
+      <div class="it" style="grid-column: 1 / -1; min-width:0"><div class="lb">Todo rows · content is paper</div>
+        <div class="paper" id="rows"></div><span class="cp">hairlines between rows, no panel · done = green mark + muted text</span></div>
+      <div class="it" style="grid-column: 1 / -1"><div class="lb">Flat paragraph block · content is paper</div>
+        <div class="prose"><h3>Project note</h3><p>Things you read sit flat on the page, separated by hairlines. A paragraph never gets a panel around it, and the type stays body 14 on a 20px line.</p><p>A second paragraph shows the rhythm between blocks: one 8px step, nothing decorative.</p><small>Notes use body 13 in --cl-text-subtle.</small></div></div>
+    </div>
+  </div></section>
+
+  <!-- ===================== PROGRESSION ===================== -->
+  <section class="pn" data-accent="slate"><h2 class="hd">Progression<span class="cp">one ladder · every kind sets only its thresholds</span></h2><div class="bd">
+    <div class="box it"><div class="lb">The ladder · the same tiers, names, shapes, colours and pips everywhere</div>
+      <div class="ladder" id="ldr"></div>
+      <span class="cp">the silhouette climbs with the tier, so a tier reads by shape and colour · the number is the kind's own measure</span></div>
+    <div class="cols w2">
+      <div class="box it"><div class="lb">Inside a tier · three pips, colour steps up daily</div>
+        <div class="ladder" id="ldr-in"></div>
+        <span class="cp">kindled, a daily habit, days 1-6 · then diamond 7, 12, 17 · floor and top have no pips</span></div>
+      <div class="box it"><div class="lb">States on any badge</div>
+        <div class="ladder" id="ldr-st"></div>
+        <span class="cp">badges are always bright · marked today = a corner mark · broken = a state on the floor, not a tier</span></div>
+    </div>
+    <div class="box it"><div class="lb">Each kind sets only its thresholds · where each tier starts</div>
+      <div class="thrwrap"><table class="thr" id="thr"></table></div>
+      <span class="cp">pips split each tier's range in thirds · a new kind adds one column, nothing else</span></div>
+    <div class="cols w2">
+      <div class="box it"><div class="lb">Try it</div>
+        <div class="seg" id="tryk"></div>
+        <div class="try"><input type="range" id="tryv" min="0" max="120" value="12" aria-label="Measure"><div class="out" id="tryo"></div></div></div>
+      <div class="box it"><div class="lb">In place · a habit row, a checkin group</div>
+        <div class="ctx" id="ctx"></div>
+        <span class="cp">the kind comes from where the badge sits, never from its shape</span></div>
+    </div>
+    <div class="box it"><div class="lb">Sizes · 18 20 22 26 30 36</div><div class="ladder" id="ldr-sz" style="align-items:center"></div></div>
+  </div></section>
+
+  <!-- ===================== PHONE ===================== -->
+  <section class="pn" data-accent="teal"><h2 class="hd">Phone<span class="cp">under 768x600 · bottom tab bar</span></h2><div class="bd">
+    <div class="phone"><div class="scr">
+        <div class="crumbs" data-accent="teal"><a href="#">Life</a><svg class="ic" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg><span class="cur">Habits</span></div>
+        <div class="box"><div class="row" style="border:0"><button class="rg" data-kind="hab" data-s="hit" aria-label="Habit"></button><span class="t">Stretch</span><span class="chip sm"><i class="wi" data-i="person"></i>14d</span></div></div>
+        <div class="box"><div class="row" style="border:0"><button class="rg" data-kind="hab" data-s="unset" aria-label="Habit"></button><span class="t">Read</span><span class="chip sm"><i class="wi" data-i="person"></i>3d</span></div></div>
+        <div class="box" style="padding:var(--cl-space-5)"><div class="strip" style="margin:0;padding:0" id="pstrip"></div></div>
+      </div>
+      <nav class="ptabs" id="ptabs">
+        <button aria-current="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>Purpose<b>6</b></button>
+        <button><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg>Habits<b>14</b></button>
+        <button><svg viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></svg>Todos<b>23</b></button>
+        <button><svg viewBox="0 0 24 24"><path d="M4 18V9M10 18V5M16 18v-7M21 18H3"/></svg>Checkin<b>3</b></button>
+        <button><svg viewBox="0 0 24 24"><path d="M3 7h7l2 2h9v10H3z"/></svg>Projects<b>9</b></button>
+      </nav></div>
+    <span class="cp">icon, short label, count badge, current = glowing underline on top</span>
+  </div></section>
+</div>
+<div id="tip" class="tip" role="tooltip"></div>
+
+<script>
+const $ = (s) => document.querySelector(s), css = getComputedStyle(document.documentElement), tok = (n) => css.getPropertyValue(n).trim();
+const el = (h) => { const t = document.createElement("template"); t.innerHTML = h.trim(); return t.content.firstChild; };
+const put = (sel, html) => { $(sel).innerHTML = html; };
+
+/* agent icons: one copy of the SVG masks */
+const SVG = (b) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${b}</svg>`)}")`;
+const ICONS = {
+  house: "<path d='M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z'/>",
+  briefcase: "<rect x='2.5' y='7' width='19' height='13.5' rx='1.5'/><path d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/><path d='M2.5 13h19'/>",
+  terminal: "<defs><mask id='p'><rect width='24' height='24' fill='white'/><path d='M7 9.5l3 2.5-3 2.5M12.5 15H17' stroke='black'/></mask></defs><rect x='1.5' y='3.5' width='21' height='17' rx='3.5' fill='black' stroke='none' mask='url(#p)'/>",
+  person: "<circle cx='12' cy='7.5' r='4'/><path d='M4 21c0-4.6 3.6-7.5 8-7.5s8 2.9 8 7.5'/>",
+  cog: "<circle cx='12' cy='12' r='3.2' stroke-width='2.6'/><path d='M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1' stroke-width='2.8'/>",
+  crown: "<path d='M3 18h18M4 15 2.5 6.5l5.5 4L12 4l4 6.5 5.5-4L20 15z' fill='black'/>",
+  branch: "<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='m15 12 4 4-4 4' stroke-width='3'/>",
+  unk: "<path d='M8.5 9a3.5 3.5 0 1 1 5 3.2c-1 .5-1.5 1.2-1.5 2.3v.5'/><path d='M12 19.3v.1' stroke-width='2.8'/>",
+};
+document.head.insertAdjacentHTML("beforeend", `<style>${Object.entries(ICONS).map(([k, b]) => `.wi[data-i="${k}"] { -webkit-mask-image: ${SVG(b)}; mask-image: ${SVG(b)}; }`).join("\n")}</style>`);
+
+/* ---- colour ---- */
+const SURF = ["bg","panel","panel-2","panel-3","overlay","line","line-2","fill","fill-2","fill-3","unset","future","grid"];
+put("#surf", SURF.map((n) => `<div class="sw"><i style="--c:var(--cl-${n})"></i><div><code>--cl-${n}</code></div></div>`).join(""));
+
+const lum = (hex) => { const h = hex.replace("#", ""), c = [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16) / 255).map((v) => v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4); return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; };
+const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
+const bg3 = tok("--cl-panel-3");
+const TEXTS = [["strong", "names, values, anything you act on"], ["", "body"], ["subtle", "notes, secondary labels"], ["muted", "captions, breadcrumbs (the floor 4.5)"]];
+put("#texts", TEXTS.map(([n, d]) => { const name = "--cl-text" + (n ? "-" + n : ""), r = ratio(tok(name), bg3);
+  return `<div class="tx"><div style="min-width:0"><b style="color:var(${name})">Aa The quick fox</b><div class="tk">${name} · ${tok(name)}</div><div class="cp">${d}</div></div><span class="r" style="color:var(--cl-${r >= 4.5 ? "good" : "attention"})">${r.toFixed(1)}:1</span></div>`; }).join(""));
+
+const MEANS = [["primary","primary action, selection, a live claim"],["info","info, counts, links, focus, drop targets"],["good","hit, done, saved"],["attention","missed, broken, error, slipping"],["wobble","paused, syncing, at risk"],["today","today's cell while unmarked"],["live","in flight (= primary)"]];
+put("#means", MEANS.map(([n, d]) => `<div class="sw"><i style="--c:var(--cl-${n})"></i><div><code>--cl-${n}</code><span>${d}</span></div></div>`).join(""));
+
+put("#ranks", Array.from({ length: 11 }, (_, n) => `<div style="background:color-mix(in oklab, var(--cl-rank-hi) ${n * 10}%, var(--cl-rank-lo))"><span>${n}</span></div>`).join(""));
+
+const ACC = ["teal","cyan","blue","violet","magenta","gold","slate"];
+put("#accents", ACC.map((a) => `<div class="pn" data-accent="${a}"><div class="hd sm">${a}</div><div style="padding:0 var(--cl-space-5) var(--cl-space-4)" class="tk">--cl-accent-${a}</div></div>`).join(""));
+
+/* ---- type ---- */
+const ROLES = [
+  ["Screen heading", "display", 600, 20, "Life dashboard", "--cl-text-20 · track-display", 1], ["Leaf name", "display", 600, 28, "Stretch daily", "--cl-text-28 · track-display", 1],
+  ["Panel heading", "display", 600, 16, "Purpose", "--cl-text-16 · track-display", 1], ["Tab", "display", 600, 13, "Habits", "--cl-text-13 · track-display", 1],
+  ["Box heading", "display", 600, 12, "Checkin", "--cl-text-12 · track-label", 2], ["Small label", "display", 600, 11, "Owner", "--cl-text-11 · track-label", 2],
+  ["Body, rows", "body", 400, 14, "A todo or a row of text, 20 to 22px line", "--cl-text-14", 0], ["Notes", "body", 400, 13, "Secondary note under a title", "--cl-text-13 · text-subtle", 0],
+  ["Metadata, counts", "mono", 500, 11, "12:04 · 14d · 3 open", "--cl-text-11 · track-mono", 3], ["Big stat", "mono", 700, 28, "86", "--cl-text-28 · mono 700", 3],
+];
+const FAM = { display: "--cl-font-display", body: "--cl-font-body", mono: "--cl-font-mono" }, TRK = ["", "--cl-track-display", "--cl-track-label", "--cl-track-mono"];
+put("#roles", `<div class="lb">Roles</div><div>` + ROLES.map(([r, f, w, s, t, k, tr]) =>
+  `<div class="trow"><span>${r}</span><span class="s" style="font-family:var(${FAM[f]});font-weight:${w};font-size:${s}px;line-height:${s > 20 ? 34 : s > 14 ? 24 : 20}px;${f === "display" ? "text-transform:uppercase;" : ""}${tr ? "letter-spacing:var(" + (f === "display" && tr === 1 ? "--cl-track-display" : TRK[tr]) + ");" : ""}">${t}</span><span class="tk">${f} ${w} · ${s}<br>${k}</span></div>`).join("") + `</div>`);
+put("#scale", [10, 11, 12, 13, 14, 16, 20, 28].map((n) => `<div><span style="font:500 var(--cl-text-${n})/1.1 var(--cl-font-mono);color:var(--cl-text-strong)">Aa</span><span class="tk">${n}</span></div>`).join(""));
+
+/* ---- space ---- */
+put("#space", [2, 4, 6, 8, 12, 16, 24, 32].map((n, i) => `<div class="sp"><span class="tk">--cl-space-${i + 1}</span><div style="display:flex;align-items:center;gap:var(--cl-space-4)"><i style="width:var(--cl-space-${i + 1})"></i><span class="tk">${n}px</span></div></div>`).join(""));
+
+/* ---- strips, grid ---- */
+const seq = ["hit","hit","miss","hit","unset","hit","hit","hit","miss","miss","hit","hit","hit"];
+const stripHtml = seq.map((s) => `<i class="mk ${s === "unset" ? "" : s}"></i>`).join("") + `<i class="mk today"></i>`;
+put("#strip", stripHtml); put("#pstrip", stripHtml);
+let hg = "";
+for (let w = 0; w < 10; w++) for (let d = 0; d < 7; d++) {
+  const n = w * 7 + d, last = w === 9;
+  let c = ((n * 7 + 3) % 11 < 6) ? "hit" : ((n * 5 + 1) % 9 === 0 ? "miss" : "");
+  if (last && d === 3) c += " today"; else if (last && d > 3) c = "future";
+  if (n < 6) c = "";
+  hg += `<button class="mk ${c}" aria-label="day ${n}"></button>`;
+}
+put("#hgrid", hg);
+
+/* ---- rank bars ---- */
+put("#rkbars", [[2, "Learning", "Fluent"], [5, "Novice", "Expert"], [8, "Rusty", "Sharp"], [10, "Raw", "Mastered"]].map(([v, lo, hi]) =>
+  `<div class="rk" style="--pct:${v * 10}%"><div class="tk"><span class="lo">${lo}</span><span class="hi">${hi}</span></div><span class="v">${v}</span></div>`).join(""));
+
+/* ---- who chips ---- */
+const AG = [["person","Bdon"],["terminal","Host agent"],["house","Personal pod"],["briefcase","Work pod"],["cog","An app"]];
+put("#who", AG.map(([i, n]) => `<span class="chip" data-tip="${n}"><i class="wi" data-i="${i}"></i>${n}</span>`).join(""));
+
+/* ---- todo rows ---- */
+const rgHtml = (kind, s) => `<button class="rg" data-kind="${kind}" data-s="${s}" aria-label="Toggle"><i><svg class="ok" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><svg class="no" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></i></button>`;
+put("#rows", [["Write the specimen page","unset","briefcase","live","4m"],["Review audit.md","unset","person","",""],["Pick the accent for Health","unset","house","","2h"],["Send the invoice","done","briefcase","","1d"]].map(([t, s, i, l, a]) =>
+  `<div class="row"${s === "done" ? " data-done" : ""}>${rgHtml("bin", s)}<span class="t">${t}</span>${a ? `<span class="chip sm ${l}"><i class="wi" data-i="${i}"></i>${a}</span>` : `<span class="chip sm"><i class="wi" data-i="${i}"></i></span>`}</div>`).join(""));
+
+/* ---- progression: one ladder ---- */
+// The tiers, bottom to top. Every kind that levels up names only where each tier above the floor starts, in its own
+// measure; everything else (names, shapes, colours, pips) comes from the ladder.
+const LADDER = ["dormant", "kindled", "diamond", "plasma", "antimatter", "reality", "ascended"];
+const KINDS = {
+  day: { name: "Daily habit", short: "Daily", unit: "day streak", starts: [1, 7, 21, 30, 60, 100], max: 120 },
+  week: { name: "Weekly habit", short: "Weekly", unit: "week streak", starts: [1, 3, 7, 11, 20, 40], max: 52 },
+  month: { name: "Monthly habit", short: "Monthly", unit: "month streak", starts: [1, 3, 5, 7, 12, 24], max: 36 },
+  checkin: { name: "Checkin group", short: "Checkin", unit: "%", starts: [20, 40, 55, 70, 85, 95], max: 100 },
+};
+const KK = Object.keys(KINDS);
+const cap = (t) => t[0].toUpperCase() + t.slice(1);
+/** Where a measure sits: tier index, its progress (f, 0..1) and pip (1-3; 0 on the floor and the top). */
+function place(kind, v) {
+  const s = [0, ...KINDS[kind].starts]; let i = s.length - 1; while (i > 0 && v < s[i]) i--;
+  const lo = s[i], hi = i < s.length - 1 ? s[i + 1] - 1 : lo, top = i === s.length - 1;
+  return { i, t: LADDER[i], f: hi > lo ? (v - lo) / (hi - lo) : 1, pip: i === 0 || top ? 0 : Math.min(3, Math.ceil((3 * (v - lo + 1)) / (hi - lo + 1))) };
+}
+/** One badge. t: a tier or "new"; n: the number shown; pip 0-3; f 0..1; m: hit | miss (marked today); s: broken. */
+const badge = ({ t, n = "", pip = 0, f = 0, m, s, bs = 30, tip }) =>
+  `<span class="bdg" data-t="${t}"${pip ? ` data-p="${pip}"` : ""}${m ? ` data-m="${m}"` : ""}${s ? ` data-s="${s}"` : ""} style="--bs:${bs}px;--f:${Math.round(f * 100)}%"${tip ? ` data-tip="${tip}"` : ""}>` +
+  `<span class="gl"><i></i></span><b>${n}</b>${pip ? "<span class=\"pp\"><i></i><i></i><i></i></span>" : ""}</span>`;
+const fig = (b, name, sub) => `<figure>${b}<figcaption>${name}${sub ? `<span>${sub}</span>` : ""}</figcaption></figure>`;
+const tipFor = (kind, v) => { const p = place(kind, v), K = KINDS[kind]; return `${cap(p.t)}${p.pip ? " " + p.pip + " of 3" : ""} · ${v}${K.unit === "%" ? "%" : " " + K.unit}`; };
+const badgeFor = (kind, v, o = {}) => { const p = place(kind, v); return badge({ t: p.t, n: v, pip: p.pip, f: p.f, tip: tipFor(kind, v), ...o }); };
+
+put("#ldr", fig(badge({ t: "new", bs: 36, tip: "New · nothing marked yet" }), "New", "no marks yet") +
+  LADDER.map((t, i) => fig(badge({ t, n: [0, 4, 12, 24, 42, 75, 120][i], pip: i && i < 6 ? 2 : 0, f: .5, bs: 36, tip: cap(t) }), t, `tier ${i}`)).join(""));
+put("#ldr-in", [1, 2, 3, 4, 5, 6, 7, 12, 17].map((v) => { const p = place("day", v); return fig(badgeFor("day", v, { bs: 30 }), `${v}d`, `pip ${p.pip}`); }).join(""));
+put("#ldr-st", [
+  fig(badge({ t: "new", bs: 30, tip: "New" }), "New", "no badge yet"),
+  fig(badge({ t: "dormant", n: 0, s: "broken", bs: 30, tip: "Dormant · streak broken" }), "Broken", "streak lost"),
+  fig(badge({ t: "dormant", n: 12, bs: 30, tip: "Dormant · 12%" }), "Dormant", "a low score"),
+  fig(badgeFor("day", 9, { m: "hit" }), "Hit today", "corner mark"),
+  fig(badgeFor("day", 24, { m: "miss" }), "Missed", "corner mark"),
+].join(""));
+
+const range = (K, i) => { const s = [0, ...K.starts], u = K.unit === "%" ? "%" : ""; return i === s.length - 1 ? s[i] + u + "+" : s[i] === s[i + 1] - 1 ? s[i] + u : s[i] + "-" + (s[i + 1] - 1) + u; };
+put("#thr", `<thead><tr><th style="text-align:left">Tier</th>${KK.map((k) => `<th>${KINDS[k].short}</th>`).join("")}</tr></thead><tbody>` +
+  LADDER.map((t, i) => `<tr><th><div>${badge({ t, pip: i && i < 6 ? 3 : 0, f: 1, bs: 20 })}${t}</div></th>${KK.map((k) => `<td>${range(KINDS[k], i)}</td>`).join("")}</tr>`).join("") + `</tbody>`);
+
+let tk = "day";
+const tryDraw = () => { const v = +$("#tryv").value, p = place(tk, v), K = KINDS[tk];
+  put("#tryo", badgeFor(tk, v, { bs: 36 }) + `<div class="rd"><b>${cap(p.t)}${p.pip ? " · pip " + p.pip : ""}</b><span class="cp">${v}${K.unit === "%" ? "%" : " " + K.unit} · ${K.name.toLowerCase()}</span></div>`); };
+put("#tryk", KK.map((k) => `<button class="btn" data-k="${k}" aria-pressed="${k === tk}">${KINDS[k].short}</button>`).join(""));
+$("#tryk").addEventListener("click", (e) => { const b = e.target.closest("[data-k]"); if (!b) return; tk = b.dataset.k; $("#tryv").max = KINDS[tk].max; $("#tryv").value = Math.min(+$("#tryv").value, KINDS[tk].max);
+  $("#tryk").querySelectorAll(".btn").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); tryDraw(); });
+$("#tryv").addEventListener("input", tryDraw); tryDraw();
+
+const mini = (a) => a.map((s) => `<i class="mk ${s}"></i>`).join("");
+put("#ctx", `<div class="hab">${badgeFor("day", 23, { bs: 22 })}<span class="t">Stretch</span><div class="strip" style="margin:0;padding:0">${mini(["hit", "hit", "hit", "hit", "hit", "hit", "hit", "today"])}</div></div>` +
+  `<div class="hab" data-done>${badgeFor("week", 8, { bs: 22, m: "hit" })}<span class="t">Weekly review</span><div class="strip" style="margin:0;padding:0">${mini(["hit", "hit", "hit", "hit", "hit", "hit", "hit", "today hit"])}</div></div>` +
+  `<div class="grp">${badgeFor("checkin", 62, { bs: 20 })}<span>Body</span><div class="rk" style="--pct:62%"><div class="tk"><span class="lo">Weak</span><span class="hi">Strong</span></div><span class="v">6.2</span></div></div>` +
+  `<div class="grp">${badgeFor("checkin", 88, { bs: 20 })}<span>Craft</span><div class="rk" style="--pct:88%"><div class="tk"><span class="lo">Novice</span><span class="hi">Master</span></div><span class="v">8.8</span></div></div>`);
+put("#ldr-sz", [18, 20, 22, 26, 30, 36].map((bs) => badgeFor("day", 24, { bs, m: bs > 20 ? "hit" : undefined })).join("") + [18, 22, 30].map((bs) => badgeFor("checkin", 97, { bs })).join(""));
+
+/* ---- interaction ---- */
+document.addEventListener("click", (e) => {
+  const rg = e.target.closest(".rg");
+  if (rg) { const bin = rg.dataset.kind === "bin", s = rg.dataset.s, cyc = bin ? { unset: "done", done: "unset" } : { unset: "hit", hit: "miss", miss: "unset" }; rg.dataset.s = cyc[s] || "unset";
+    if (rg.closest(".row")) rg.closest(".row").toggleAttribute("data-done", rg.dataset.s === "done"); }
+  const tab = e.target.closest(".tabs button, .ptabs button");
+  if (tab) { tab.parentElement.querySelectorAll("button").forEach((b) => b.removeAttribute("aria-current")); tab.setAttribute("aria-current", "true"); }
+  const sg = e.target.closest("#seg .btn");
+  if (sg) document.querySelectorAll("#seg .btn").forEach((b) => b.setAttribute("aria-pressed", String(b === sg)));
+  if (e.target.closest("a[href='#']")) e.preventDefault();
+});
+document.querySelectorAll(".rg").forEach((b) => { if (!b.querySelector("i")) b.innerHTML = rgHtml("x", "").match(/<i>[\s\S]*<\/i>/)[0]; });
+const tip = $("#tip"), showTip = (t, x, y) => { tip.textContent = t.dataset.tip; tip.classList.add("on"); const r = tip.getBoundingClientRect(); tip.style.left = Math.min(x + 12, innerWidth - r.width - 8) + "px"; tip.style.top = Math.min(y + 16, innerHeight - r.height - 8) + "px"; };
+document.addEventListener("pointermove", (e) => { const t = e.target.closest("[data-tip]"); if (t) showTip(t, e.clientX, e.clientY); else tip.classList.remove("on"); });
+document.addEventListener("focusin", (e) => { const t = e.target.closest("[data-tip]"); if (t && e.target.matches(":focus-visible")) { const r = t.getBoundingClientRect(); showTip(t, r.left, r.bottom); } });
+document.addEventListener("focusout", () => tip.classList.remove("on"));
+</script>
+</body>
+</html>

@@ -80,7 +80,7 @@ const WHO_ICONS: Record<string, string> = {
   branch: "<path d='M5 3v8a5 5 0 0 0 5 5h9' stroke-width='3'/><path d='m15 12 4 4-4 4' stroke-width='3'/>",
   unk: "<path d='M8.5 9a3.5 3.5 0 1 1 5 3.2c-1 .5-1.5 1.2-1.5 2.3v.5'/><path d='M12 19.3v.1' stroke-width='2.8'/>",
 };
-// Built to the Clarity design system (clarity design/DESIGN.md; the life dashboard is the reference): every value is a
+// Built to the Clarity design system (dots modules/design/DESIGN.md; the life dashboard is the reference): every value is a
 // --cl-* token with bb's own variable as the fallback, so the plugin still reads under another bb theme.
 const WHO_CSS = `
 [data-todo-drag] { user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }

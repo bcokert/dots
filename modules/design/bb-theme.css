@@ -1,0 +1,184 @@
+/* Clarity's bb theme: bb's theme variables set from tokens.css, plus a small layer for what they can't reach.
+   Hand-written; modules/design/bb-theme.py joins it with the fonts and tokens.css into the theme the bb-plugin ships.
+   bb's variables: the bb-cli skill's references/theming.md. Dark only: light mode gets the same values.
+
+   Every --cl-* token is defined too, so bb plugins (todo, session-agents, genui) can use them directly. */
+
+:root,
+.light,
+.dark {
+  color-scheme: dark;
+
+  /* anchors: everything bb doesn't set below derives from these */
+  --canvas: var(--cl-bg);
+  --ink: var(--cl-text);
+
+  /* surfaces. Content (chat) is paper on the page; chrome (sidebar, popovers) sits on panels */
+  --background: var(--cl-bg);
+  --foreground: var(--cl-text);
+  --card: var(--cl-panel);
+  --card-foreground: var(--cl-text);
+  --popover: var(--cl-panel-3);
+  --popover-foreground: var(--cl-text);
+  --secondary: var(--cl-fill);
+  --secondary-foreground: var(--cl-text-strong);
+  --accent: var(--cl-fill-2);
+  --accent-foreground: var(--cl-text-strong);
+  --muted: var(--cl-fill-2);
+  --surface-recessed: var(--cl-fill);
+  --surface-raised: var(--cl-panel-2);
+  --surface-scrim: color-mix(in srgb, var(--cl-bg) 92%, transparent);
+  --state-hover: var(--cl-fill);
+  --state-active: var(--cl-fill-2);
+
+  /* edges: hairlines only; inside a panel boxes are fills */
+  --border: var(--cl-line);
+  --border-hairline: var(--cl-line);
+  --border-seam: var(--cl-line);
+  --border-seam-vertical: var(--cl-line);
+  --input: var(--cl-line-2);
+
+  /* sidebar: chrome */
+  --sidebar: var(--cl-panel);
+  --sidebar-foreground: var(--cl-text);
+  --sidebar-primary: var(--cl-primary);
+  --sidebar-primary-foreground: var(--cl-on-bright);
+  --sidebar-accent: var(--cl-fill-2);
+  --sidebar-accent-foreground: var(--cl-text-strong);
+  --sidebar-border: var(--cl-line);
+  --sidebar-ring: var(--cl-focus);
+
+  /* primary, selection, focus. Selected is a tint, never an outline */
+  --primary: var(--cl-primary);
+  --primary-foreground: var(--cl-on-bright);
+  --ring: var(--cl-focus);
+  --surface-selected: var(--cl-selected);
+  --surface-selected-border: transparent;
+  --file-accent: var(--cl-info);
+
+  /* text tiers */
+  --muted-foreground: var(--cl-text-subtle);
+  --readback-foreground: color-mix(in oklab, var(--cl-text-subtle) 50%, var(--cl-text-muted));
+  --subtle-foreground: var(--cl-text-muted);
+
+  /* meaning: each colour means one thing (DESIGN.md, Colour) */
+  --destructive: var(--cl-attention);
+  --destructive-foreground: var(--cl-on-bright);
+  --destructive-text: color-mix(in oklab, var(--cl-attention) 80%, white);
+  --surface-destructive: var(--cl-attention-surface);
+  --surface-destructive-border: color-mix(in srgb, var(--cl-attention) 45%, transparent);
+  --warning: var(--cl-wobble);
+  --warning-text: var(--cl-wobble);
+  --attention: var(--cl-wobble);      /* bb's "waiting on you" dot: amber, since red means broken */
+  --success: var(--cl-good);
+  --diff-added: var(--cl-good);
+  --diff-removed: var(--cl-attention);
+  --pr-merged: var(--cl-accent-violet);
+
+  /* shape: 4px panels, buttons, inputs; Tailwind's rounded-md/-sm step down from it (2px, 0) */
+  --radius: var(--cl-radius-lg);
+
+  /* type. Inter is bundled in bb as "Inter Variable" (so --cl-font-body names it here too, for plugins); the
+     display and mono faces come with this theme */
+  --cl-font-body: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--cl-font-body);
+  --font-mono: var(--cl-font-mono);
+  --font-terminal: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+/* ---------- the layer: what bb's variables can't reach ----------
+   Only generic selectors and the sidebar's data attributes (shadcn's, which bb uses). Each rule is checked on the
+   live DOM before it ships; a rule that needs a class bb doesn't promise stays out. Checked on bb 0.50.1, 2026-11-26:
+   - current session: the row is [data-sidebar-rename-row] and bb marks the current one with .bb-sidebar-selected-row
+     (and bg-state-active); there is no aria-current on the row (aria-current="page" is only on the rail's buttons).
+     bb's class is the only handle, so it is the one non-attribute selector here: if bb renames it, the row falls back
+     to bb's own --state-active fill, which is a tint too.
+   - status dots: the unread / waiting dot is the rounded-full span inside [data-sidebar-thread-trailing-indicator].
+     The running spinner is an animated svg in the same slot: left a spinner. The only other rounded-full in the
+     sidebar is the round "download" button at the bottom: left alone (a button, not a mark).
+   - project header: [data-sidebar="group-label"] ("CLARITY") sat right above session-agents' group label
+     (display caps too): the header is now the quiet mono breadcrumb, the group label keeps the display caps
+   - no :focus-visible rule: bb's own outlines and rings already draw from --ring, which is --cl-focus here
+   - no body-wide tabular-nums: Inter's tnum widens hyphens in prose ("follow - up"); numbers that align are mono
+   Chat (same check, thread view):
+   - bb sets all chat prose at 13px (its text-sm) on a 21px line; the system's body is 14 on 21. Set on
+     [data-markdown-preview], the one container every message's markdown sits in; paragraphs, lists and the user's
+     own message inherit it. Headings were 15px (h3) and 18px (h1), off the scale: now 20 / 16 / 14 by tag.
+   - inline code: bb's pill was 4px; chips are 2px. Code blocks: bb draws a 1px outline plus a fill; inside content
+     boxes are fills, so the outline goes (the wrapper is the parent of the <pre>, found with :has(> pre)).
+   - user message: bb draws a right-aligned bubble (rounded-xl, border, fill). The wrapper is the one that holds
+     [data-image-gallery-clipped]; it is now flat on the page with a quiet left hairline (Bdon chose this over a
+     squared fill box, see the report). The bubble's outer wrappers carry only layout classes (ml-auto, w-fit,
+     max-w-[70%]), reached as the direct child of [data-message-column].
+   - composer: [data-promptbox] was 8px with a lift shadow; inputs are 4px and flat. Its editor text 13 -> 14.
+   - mention pills ([data-prompt-mention], thread links in prose) were rounded-full: now 2px chips.
+   - left alone: tool and thinking rows (muted 13px buttons, flat already); tables (no markdown table exists in any
+     thread to inspect, the only <table> seen is genui's own, which genui styles); the "Uncommitted" strip; message
+     metadata (12px, secondary); genui cards inside chat (genui's, other slice); the todo chips (todo plugin's). */
+
+::selection { background: color-mix(in srgb, var(--cl-primary) 35%, transparent); color: var(--cl-text-strong); }
+
+* { scrollbar-color: var(--cl-fill-3) transparent; }
+
+/* the project header above a session list: a quiet mono breadcrumb (DESIGN.md, Breadcrumbs), so the display-caps
+   group labels under it (session-agents) are the strong ones */
+[data-sidebar="group-label"] {
+  font-family: var(--cl-font-mono);
+  font-weight: 500;
+  font-size: var(--cl-text-10);
+  letter-spacing: var(--cl-track-mono);
+  text-transform: uppercase;
+  color: var(--cl-text-muted);
+}
+
+/* the current session: a tint with strong text, no outline (DESIGN.md, States). Hover steps the fill up one */
+[data-sidebar-rename-row].bb-sidebar-selected-row {
+  background-color: var(--cl-selected);
+  color: var(--cl-text-strong);
+}
+[data-sidebar-rename-row].bb-sidebar-selected-row:hover {
+  background-image: linear-gradient(var(--cl-fill-2), var(--cl-fill-2));
+}
+
+/* status marks are squares: the unread / waiting dot on the right of a row */
+[data-sidebar-thread-trailing-indicator] .rounded-full { border-radius: var(--cl-radius-sm); }
+
+/* the round "updates available" button in the sidebar footer is a button: 4px, no circle */
+[data-sidebar="menu-button"][data-testid="sidebar-update-button"] { border-radius: var(--cl-radius-lg); }
+
+/* ---------- chat ---------- */
+
+/* prose: body is 14 on a 21px line (DESIGN.md, Type). The doubled attribute out-ranks bb's text-sm class */
+[data-markdown-preview][data-markdown-preview] { font-size: var(--cl-text-14); line-height: 21px; }
+
+/* headings by tag, from the scale only; Inter semibold, strong text */
+[data-markdown-preview] h1 { font-size: var(--cl-text-20); line-height: 28px; font-weight: 600; color: var(--cl-text-strong); }
+[data-markdown-preview] h2 { font-size: var(--cl-text-16); line-height: 24px; font-weight: 600; color: var(--cl-text-strong); }
+[data-markdown-preview] :is(h3, h4, h5, h6) { font-size: var(--cl-text-14); line-height: 21px; font-weight: 600; color: var(--cl-text-strong); letter-spacing: 0; }
+
+/* inline code is a small thing: 2px */
+[data-markdown-preview] :not(pre) > code { border-radius: var(--cl-radius-sm); }
+
+/* a code block is a fill, not an outlined box; the wrapper is the <pre>'s parent */
+[data-markdown-preview] div:has(> pre) { border: 0; border-radius: var(--cl-radius-lg); }
+
+/* thread links and mentions are chips: squares, not pills */
+[data-prompt-mention][data-prompt-mention] { border-radius: var(--cl-radius-sm); }
+
+/* the user's message: flat on the page, full width, a quiet left hairline; no bubble (Principle 1) */
+/* 8px in each side lines it up with the assistant's text column */
+[data-timeline-row-id*=":user"] [data-message-column] > div { width: calc(100% - 16px); max-width: none; margin-left: var(--cl-space-4); align-items: stretch; }
+[data-timeline-row-id*=":user"] [data-message-column] > div > div { width: 100%; max-width: none; align-items: stretch; }
+[data-timeline-row-id*=":user"] [data-message-column] div:has(> [data-image-gallery-clipped]) {
+  border: 0;
+  border-left: 2px solid var(--cl-line-2);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 0 var(--cl-space-5);
+  max-width: none;
+  color: var(--cl-text-strong);
+}
+
+/* the composer: an input, 4px and flat */
+[data-promptbox] { border-radius: var(--cl-radius-lg); box-shadow: none; }
+[data-promptbox-editor-content][data-promptbox-editor-content] { font-size: var(--cl-text-14); }

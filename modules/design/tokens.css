@@ -1,0 +1,154 @@
+/* Clarity design tokens. The one file every surface imports: the life dashboard, every clarity-app, the bb theme
+   and bb plugins. Rules for using them: DESIGN.md next to this file. Dark only.
+
+   Every name starts with --cl- so the file can load inside bb (Tailwind and bb's own theme variables) without
+   clashing. One name per meaning: if two tokens look the same, they still mean different things. */
+
+:root {
+  color-scheme: dark;
+
+  /* ---------- surfaces ---------- */
+  --cl-bg: #05070b;                          /* the page */
+  --cl-panel: #0a0f16;                       /* an outer panel, bottom of its gradient */
+  --cl-panel-2: #0e151f;                     /* an outer panel, top; sticky headers */
+  --cl-panel-3: #131c28;                     /* raised: popovers, the dragged item */
+  --cl-overlay: #0d141d;                     /* tooltips */
+  --cl-line: rgba(130, 180, 240, .13);       /* hairlines and outer panel edges */
+  --cl-line-2: rgba(130, 180, 240, .28);     /* a stronger edge: tooltips, the input under focus */
+  --cl-fill: rgba(140, 170, 210, .08);       /* an inner box (never an outline) */
+  --cl-fill-2: rgba(140, 170, 210, .14);     /* chips, buttons, wells */
+  --cl-fill-3: rgba(140, 170, 210, .20);     /* hovered or open button */
+  --cl-unset: rgba(170, 195, 230, .5);       /* a mark with no value yet: same size as a filled one */
+  --cl-future: rgba(140, 170, 210, .06);     /* a day that hasn't happened */
+  --cl-grid: rgba(130, 180, 240, .035);      /* the faint background grid */
+
+  /* ---------- text (contrast on --cl-panel-3, the lightest surface) ---------- */
+  --cl-text-strong: #f2f7fd;                 /* names, values, anything you act on (15.9:1) */
+  --cl-text: #c8d4e1;                        /* body (11.4:1) */
+  --cl-text-subtle: #8fa2b7;                 /* notes, secondary labels (6.5:1) */
+  --cl-text-muted: #72869c;                  /* captions, breadcrumbs, counts that repeat (4.6:1, the floor) */
+  --cl-on-bright: #04121a;                   /* text on a bright fill (good, a tier, today) */
+
+  /* ---------- meaning: each colour means one thing ---------- */
+  --cl-primary: #3d8bff;                     /* primary action, selection, a live claim */
+  --cl-info: #2bd4ff;                        /* info, counts, links, focus, drop targets */
+  --cl-good: #1fdc7a;                        /* hit, done, saved */
+  --cl-attention: #ff2e55;                   /* missed, broken, error, slipping. Only for attention */
+  --cl-attention-surface: #2a0710;           /* behind an error message */
+  --cl-wobble: #ffbe2e;                      /* wobbling: paused, syncing, at risk */
+  --cl-today: #e6ecf4;                       /* today's cell while unmarked */
+  --cl-today-good: color-mix(in oklab, var(--cl-good) 78%, white);           /* today's cell, hit: brighter than a past hit */
+  --cl-today-attention: color-mix(in oklab, var(--cl-attention) 82%, white); /* today's cell, missed */
+  --cl-focus: var(--cl-info);
+  --cl-selected: color-mix(in srgb, var(--cl-primary) 18%, transparent); /* selected or pressed: a tint, never an outline */
+  --cl-live: var(--cl-primary);              /* in flight: a claimed todo, a running session */
+
+  /* ranks (0-10): a blue scale, never red. Low = still learning */
+  --cl-rank-lo: #1f3f9e;
+  --cl-rank-hi: #3fdcff;
+  --cl-rank-lo-text: #9db1d3;
+  --cl-rank-hi-text: #eaf7ff;
+
+  /* ---------- the ladder: one set of tiers for everything that levels up (DESIGN.md, Progression) ----------
+     Tier art keeps its own colours: they name a tier, never a state (a broken streak is a state: --cl-attention).
+     lo -> hi is the climb inside a tier. Art is a first pass; the names and the structure are the system. */
+  --cl-tier-dormant-lo: #3a4656;
+  --cl-tier-dormant-hi: #6d7d92;
+  --cl-tier-dormant-ink: #e3e9f1;
+  --cl-tier-kindled-lo: #22e08a;             /* day one: green */
+  --cl-tier-kindled-hi: #ffd23f;             /* warming to gold */
+  --cl-tier-kindled-ink: #06170c;
+  --cl-tier-diamond-lo: #2357e8;
+  --cl-tier-diamond-hi: #8fe6ff;
+  --cl-tier-diamond-glow: #4aa8ff;
+  --cl-tier-diamond-ink: #ffffff;
+  --cl-tier-plasma-core: #ffe0ff;
+  --cl-tier-plasma-hi: #f05cff;
+  --cl-tier-plasma-mid: #8a24e0;
+  --cl-tier-plasma-lo: #4a0f9a;
+  --cl-tier-plasma-glow: #e04bff;
+  --cl-tier-antimatter-core: #03000a;
+  --cl-tier-antimatter-lo: #1d0b46;
+  --cl-tier-antimatter-hi: #6c3cff;
+  --cl-tier-antimatter-rim: #b79aff;
+  --cl-tier-antimatter-glow: #9d6bff;
+  --cl-tier-antimatter-ink: #e8dcff;
+  --cl-tier-reality-gold: #ffe58a;
+  --cl-tier-reality-white: #fffaf0;
+  --cl-tier-reality-cyan: #9ff0ff;
+  --cl-tier-reality-pink: #ffd2f6;
+  --cl-tier-reality-ink: #241600;
+  --cl-tier-ascended-core: #ffffff;
+  --cl-tier-ascended-mid: #e9fbff;
+  --cl-tier-ascended-edge: #ffe9a8;
+  --cl-tier-ascended-ink: #0a0a12;
+  --cl-pip-lit: var(--cl-text-strong);       /* a filled pip: a third of the way through a tier */
+  --cl-pip-unlit: rgba(5, 7, 11, .7);        /* a pip still to earn: same size, dark */
+
+  /* ---------- accents: a goal's colour, on its edge and title only. None of them means anything ---------- */
+  --cl-accent-teal: #1fe0c4;
+  --cl-accent-cyan: #2bd4ff;
+  --cl-accent-blue: #4d8dff;
+  --cl-accent-violet: #9d6bff;
+  --cl-accent-magenta: #ee52ff;
+  --cl-accent-gold: #ffcf4d;
+  --cl-accent-slate: #8aa0bb;
+  --cl-accent: var(--cl-accent-slate);       /* the current subtree's accent; set with data-accent */
+
+  /* ---------- agents: the icon says who, colour stays neutral ---------- */
+  --cl-agent: var(--cl-text-subtle);
+
+  /* ---------- shape: rounded squares, never circles ---------- */
+  --cl-radius-sm: 2px;                       /* marks, chips, pips, swatches, status squares */
+  --cl-radius-lg: 4px;                       /* panels, buttons, inputs, tooltips, popovers */
+  --cl-hairline: 1px;
+  --cl-edge-bar: 34px;                       /* the accent bar on a panel's top-left corner, 2px tall */
+
+  /* ---------- space: 2 4 6 8 12 16 24 32 ---------- */
+  --cl-space-1: 2px;
+  --cl-space-2: 4px;
+  --cl-space-3: 6px;
+  --cl-space-4: 8px;
+  --cl-space-5: 12px;
+  --cl-space-6: 16px;
+  --cl-space-7: 24px;
+  --cl-space-8: 32px;
+  --cl-target: 44px;                         /* a touch target tapped often */
+  --cl-target-sm: 36px;                      /* the smallest touch target */
+
+  /* ---------- type ---------- */
+  --cl-font-display: "Chakra Petch", "Rajdhani", system-ui, sans-serif;   /* names and labels, uppercase */
+  --cl-font-body: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --cl-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; /* numbers, metadata */
+  --cl-text-10: 10px;                        /* chips, tab-bar labels */
+  --cl-text-11: 11px;                        /* mono metadata, breadcrumbs, small caps labels */
+  --cl-text-12: 12px;                        /* box headings, secondary rows */
+  --cl-text-13: 13px;                        /* notes, compact rows */
+  --cl-text-14: 14px;                        /* body, rows */
+  --cl-text-16: 16px;                        /* panel headings, a todo zoomed in */
+  --cl-text-20: 20px;                        /* screen headings */
+  --cl-text-28: 28px;                        /* a leaf's name, big numbers */
+  --cl-track-mono: .04em;                    /* mono metadata */
+  --cl-track-label: .1em;                    /* small uppercase labels */
+  --cl-track-display: .14em;                 /* display headings and tabs */
+
+  /* ---------- glow: only for now or earned ---------- */
+  --cl-glow-sm: 6px;                         /* a hit mark, tier badges */
+  --cl-glow: 10px;                           /* today, a live claim, the current tab */
+  /* text on a rank bar, the one place text sits on a bright fill: a dark halo carries it, not the fill */
+  --cl-halo: 0 0 2px color-mix(in srgb, var(--cl-bg) 95%, transparent), 0 0 6px color-mix(in srgb, var(--cl-bg) 80%, transparent);
+  --cl-halo-lit: var(--cl-halo), 0 0 12px color-mix(in srgb, var(--cl-rank-hi-text) 45%, transparent); /* the value: halo plus its own faint glow */
+
+  /* ---------- motion ---------- */
+  --cl-ease: cubic-bezier(.23, 1, .32, 1);
+  --cl-fast: .15s;                           /* state changes: a tick, a hover */
+  --cl-move: .2s;                            /* a zoom, a panel opening */
+}
+
+[data-accent="teal"] { --cl-accent: var(--cl-accent-teal); }
+[data-accent="cyan"] { --cl-accent: var(--cl-accent-cyan); }
+[data-accent="blue"] { --cl-accent: var(--cl-accent-blue); }
+[data-accent="violet"] { --cl-accent: var(--cl-accent-violet); }
+[data-accent="magenta"] { --cl-accent: var(--cl-accent-magenta); }
+[data-accent="gold"] { --cl-accent: var(--cl-accent-gold); }
+[data-accent="slate"] { --cl-accent: var(--cl-accent-slate); }

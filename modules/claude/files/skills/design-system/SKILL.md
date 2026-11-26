@@ -6,16 +6,13 @@ description: How to build anything Bdon will look at (a clarity-app page, the li
 # Building to the Clarity design system
 
 One look and set of behaviours for everything Bdon uses, so nobody can tell where one app ends and the next begins.
-The system is three files in the clarity repo's `design/` folder; read them, don't recall them:
+The system is three files in dots, `<dots>/modules/design/` (on every machine); read them, don't recall them:
 
 | File | What |
 |---|---|
 | `DESIGN.md` | The rules: principles, colour meanings, shapes, type, space, states, components, progression, motion, phone |
 | `tokens.css` | Every value, as `--cl-*` variables. Nothing hard-codes a colour, size, radius or font |
 | `specimen.html` | Every token, shape, state and component drawn, with working markup to copy |
-
-No clarity checkout on this machine (the work laptop): build to bb's theme variables, which the Clarity bb theme sets,
-and say so.
 
 ## Every time
 
@@ -36,10 +33,10 @@ and say so.
   Use `var(--cl-…, var(<bb variable>))` so the plugin still reads when another theme is on; Tailwind's host token
   classes (`bg-card`, `text-muted-foreground`, …) already follow the theme.
 - **genui blocks and inline previews in bb**: bb's variables (`--foreground`, `--primary`, …) are Clarity's while
-  the theme is on. A standalone HTML preview that can't load sibling files: `python3 design/bundle.py <page> <out>`
+  the theme is on. A standalone HTML preview that can't load sibling files: `python3 <dots>/modules/design/bundle.py <page> <out>`
   inlines the tokens and fonts.
-- **The bb theme itself**: `design/bb-theme.css` (hand-written mapping) and `python3 design/bb-theme.py <out>`
-  (writes the plugin's `themes/clarity.css`). Re-run after any tokens.css change.
+- **The bb theme itself**: `modules/design/bb-theme.css` (hand-written mapping) and, from dots,
+  `python3 modules/design/bb-theme.py modules/bb/plugins/clarity-theme/themes/clarity.css`. Re-run after any tokens.css change.
 
 ## The rules people get wrong first
 
