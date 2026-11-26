@@ -253,21 +253,97 @@
 
 /* ---------- the layer: what bb's variables can't reach ----------
    Only generic selectors and the sidebar's data attributes (shadcn's, which bb uses). Each rule is checked on the
-   live DOM before it ships; a rule that needs a class bb doesn't promise stays out. Checked on bb 0.50.1, 2026-11-25:
-   - no current-session rule: the session rows are the session-agents plugin's, not bb's menu buttons (bb pieces)
+   live DOM before it ships; a rule that needs a class bb doesn't promise stays out. Checked on bb 0.50.1, 2026-11-26:
+   - current session: the row is [data-sidebar-rename-row] and bb marks the current one with .bb-sidebar-selected-row
+     (and bg-state-active); there is no aria-current on the row (aria-current="page" is only on the rail's buttons).
+     bb's class is the only handle, so it is the one non-attribute selector here: if bb renames it, the row falls back
+     to bb's own --state-active fill, which is a tint too.
+   - status dots: the unread / waiting dot is the rounded-full span inside [data-sidebar-thread-trailing-indicator].
+     The running spinner is an animated svg in the same slot: left a spinner. The only other rounded-full in the
+     sidebar is the round "download" button at the bottom: left alone (a button, not a mark).
+   - project header: [data-sidebar="group-label"] ("CLARITY") sat right above session-agents' group label
+     (display caps too): the header is now the quiet mono breadcrumb, the group label keeps the display caps
    - no :focus-visible rule: bb's own outlines and rings already draw from --ring, which is --cl-focus here
-   - no body-wide tabular-nums: Inter's tnum widens hyphens in prose ("follow - up"); numbers that align are mono */
+   - no body-wide tabular-nums: Inter's tnum widens hyphens in prose ("follow - up"); numbers that align are mono
+   Chat (same check, thread view):
+   - bb sets all chat prose at 13px (its text-sm) on a 21px line; the system's body is 14 on 21. Set on
+     [data-markdown-preview], the one container every message's markdown sits in; paragraphs, lists and the user's
+     own message inherit it. Headings were 15px (h3) and 18px (h1), off the scale: now 20 / 16 / 14 by tag.
+   - inline code: bb's pill was 4px; chips are 2px. Code blocks: bb draws a 1px outline plus a fill; inside content
+     boxes are fills, so the outline goes (the wrapper is the parent of the <pre>, found with :has(> pre)).
+   - user message: bb draws a right-aligned bubble (rounded-xl, border, fill). The wrapper is the one that holds
+     [data-image-gallery-clipped]; it is now flat on the page with a quiet left hairline (Bdon chose this over a
+     squared fill box, see the report). The bubble's outer wrappers carry only layout classes (ml-auto, w-fit,
+     max-w-[70%]), reached as the direct child of [data-message-column].
+   - composer: [data-promptbox] was 8px with a lift shadow; inputs are 4px and flat. Its editor text 13 -> 14.
+   - mention pills ([data-prompt-mention], thread links in prose) were rounded-full: now 2px chips.
+   - left alone: tool and thinking rows (muted 13px buttons, flat already); tables (no markdown table exists in any
+     thread to inspect, the only <table> seen is genui's own, which genui styles); the "Uncommitted" strip; message
+     metadata (12px, secondary); genui cards inside chat (genui's, other slice); the todo chips (todo plugin's). */
 
 ::selection { background: color-mix(in srgb, var(--cl-primary) 35%, transparent); color: var(--cl-text-strong); }
 
 * { scrollbar-color: var(--cl-fill-3) transparent; }
 
-/* sidebar group labels: display caps, like every small label in the system */
+/* the project header above a session list: a quiet mono breadcrumb (DESIGN.md, Breadcrumbs), so the display-caps
+   group labels under it (session-agents) are the strong ones */
 [data-sidebar="group-label"] {
-  font-family: var(--cl-font-display);
-  font-weight: 600;
-  font-size: var(--cl-text-11);
-  letter-spacing: var(--cl-track-label);
+  font-family: var(--cl-font-mono);
+  font-weight: 500;
+  font-size: var(--cl-text-10);
+  letter-spacing: var(--cl-track-mono);
   text-transform: uppercase;
   color: var(--cl-text-muted);
 }
+
+/* the current session: a tint with strong text, no outline (DESIGN.md, States). Hover steps the fill up one */
+[data-sidebar-rename-row].bb-sidebar-selected-row {
+  background-color: var(--cl-selected);
+  color: var(--cl-text-strong);
+}
+[data-sidebar-rename-row].bb-sidebar-selected-row:hover {
+  background-image: linear-gradient(var(--cl-fill-2), var(--cl-fill-2));
+}
+
+/* status marks are squares: the unread / waiting dot on the right of a row */
+[data-sidebar-thread-trailing-indicator] .rounded-full { border-radius: var(--cl-radius-sm); }
+
+/* the round "updates available" button in the sidebar footer is a button: 4px, no circle */
+[data-sidebar="menu-button"][data-testid="sidebar-update-button"] { border-radius: var(--cl-radius-lg); }
+
+/* ---------- chat ---------- */
+
+/* prose: body is 14 on a 21px line (DESIGN.md, Type). The doubled attribute out-ranks bb's text-sm class */
+[data-markdown-preview][data-markdown-preview] { font-size: var(--cl-text-14); line-height: 21px; }
+
+/* headings by tag, from the scale only; Inter semibold, strong text */
+[data-markdown-preview] h1 { font-size: var(--cl-text-20); line-height: 28px; font-weight: 600; color: var(--cl-text-strong); }
+[data-markdown-preview] h2 { font-size: var(--cl-text-16); line-height: 24px; font-weight: 600; color: var(--cl-text-strong); }
+[data-markdown-preview] :is(h3, h4, h5, h6) { font-size: var(--cl-text-14); line-height: 21px; font-weight: 600; color: var(--cl-text-strong); letter-spacing: 0; }
+
+/* inline code is a small thing: 2px */
+[data-markdown-preview] :not(pre) > code { border-radius: var(--cl-radius-sm); }
+
+/* a code block is a fill, not an outlined box; the wrapper is the <pre>'s parent */
+[data-markdown-preview] div:has(> pre) { border: 0; border-radius: var(--cl-radius-lg); }
+
+/* thread links and mentions are chips: squares, not pills */
+[data-prompt-mention][data-prompt-mention] { border-radius: var(--cl-radius-sm); }
+
+/* the user's message: flat on the page, full width, a quiet left hairline; no bubble (Principle 1) */
+/* 8px in each side lines it up with the assistant's text column */
+[data-timeline-row-id*=":user"] [data-message-column] > div { width: calc(100% - 16px); max-width: none; margin-left: var(--cl-space-4); align-items: stretch; }
+[data-timeline-row-id*=":user"] [data-message-column] > div > div { width: 100%; max-width: none; align-items: stretch; }
+[data-timeline-row-id*=":user"] [data-message-column] div:has(> [data-image-gallery-clipped]) {
+  border: 0;
+  border-left: 2px solid var(--cl-line-2);
+  border-radius: 0;
+  background: transparent;
+  padding: 0 0 0 var(--cl-space-5);
+  max-width: none;
+  color: var(--cl-text-strong);
+}
+
+/* the composer: an input, 4px and flat */
+[data-promptbox] { border-radius: var(--cl-radius-lg); box-shadow: none; }
+[data-promptbox-editor-content][data-promptbox-editor-content] { font-size: var(--cl-text-14); }
