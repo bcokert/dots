@@ -66,9 +66,10 @@ done <<<"$installed"
 # with this user's rights). Bumping one: read the diff since the pinned commit, then change the sha here. The next run
 # removes the old pin and installs the new one; bb deletes a removed plugin's settings, and section 2 sets ours again.
 #   genui: our fork of ComicBit/bb-plugin-genui (branch bdon: upstream d8cac8d + closed questions look closed, a lone
-#   answer button sends at once). Upstreaming is pending; bumping it means rebasing bdon onto upstream.
+#   answer button sends at once, the Clarity design system's rounded squares and info-coloured diffs). Upstreaming
+#   is pending; bumping it means rebasing bdon onto upstream.
 git_plugins=(
-  "genui https://github.com/bcokert/bb-plugin-genui.git 7d149453a2d71710ca88210faa252f6c969cfaf6"
+  "genui https://github.com/bcokert/bb-plugin-genui.git 8878dda2a885a3b57950865d236d4de4a328e635"
 )
 for entry in "${git_plugins[@]}"; do
   read -r id url sha <<<"$entry"
