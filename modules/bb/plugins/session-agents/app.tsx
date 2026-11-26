@@ -3,7 +3,8 @@
 //     own login, a briefcase for a work machine (name matching the workMachines setting). Host agents (name
 //     matching hostMachines, e.g. "Claude Personal Host": they run directly on a computer and can see all of it)
 //     get a solid terminal badge in the same colour instead, so they stand out from the pods. It's looked up from
-//     the thread's environment's machine, in the sidebar and in the phone's "Recent" list.
+//     the thread's environment's machine, in the sidebar and in the phone's "Recent" list. Claire (a machine
+//     matching claireMachines) gets her own: a HUD ring, a segmented ring around a solid core.
 //   - The session list header reads "Sessions · <label>" instead of "Threads"; "New thread" reads "New session".
 //   - Projects stay in most-recently-used order: the project with the newest session moves to the top.
 //   - A session's top bar starts with where it runs: server label, agent icon, project, then the title. Tap any of
@@ -37,6 +38,8 @@ const HOUSE = svg("<path d='M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1
 const BRIEFCASE = svg("<rect x='2.5' y='7' width='19' height='13.5' rx='1.5'/><path d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/><path d='M2.5 13h19'/>");
 // Solid, unlike the outline house and briefcase, so a Host agent reads differently at 14px: a filled window with a
 // ">_" prompt cut out of it.
+// Claire, Bdon's chief of staff: a segmented ring around a solid core (Bdon 2026-11-26).
+const RING = svg("<path d='M12 2.5a9.5 9.5 0 0 1 8.2 4.7M21.4 12a9.5 9.5 0 0 1-4.7 8.2M12 21.5a9.5 9.5 0 0 1-8.2-4.7M2.6 12a9.5 9.5 0 0 1 4.7-8.2'/><circle cx='12' cy='12' r='4.2' fill='black'/>");
 const TERMINAL = svg("<defs><mask id='p'><rect width='24' height='24' fill='white'/><path d='M7 9.5l3 2.5-3 2.5M12.5 15H17' stroke='black'/></mask></defs><rect x='1.5' y='3.5' width='21' height='17' rx='3.5' fill='black' stroke='none' mask='url(#p)'/>");
 
 // Role marks (see .sa-role below): drawn bolder so they read at 10px.
@@ -65,6 +68,7 @@ const CSS = `
 [data-sa-agent="work"], [data-sa-header-agent="work"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); --sa-icon: ${BRIEFCASE}; }
 [data-sa-agent="personal-host"], [data-sa-header-agent="personal-host"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); --sa-icon: ${TERMINAL}; }
 [data-sa-agent="work-host"], [data-sa-header-agent="work-host"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); --sa-icon: ${TERMINAL}; }
+[data-sa-agent="claire"], [data-sa-header-agent="claire"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); --sa-icon: ${RING}; }
 [data-sa-header-agent] { display: inline-flex; }
 /* Role mark, bottom-right of the agent icon: a crown is a lead (owns the job), a branch arrow is a worker (a lead's
    child session). Icons, not dots: filled/hollow dots read as online/offline. */
@@ -86,6 +90,7 @@ const CSS = `
 .sa-subs[data-k="work"], .sa-pips[data-k="work"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); }
 .sa-subs[data-k="personal-host"], .sa-pips[data-k="personal-host"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); }
 .sa-subs[data-k="work-host"], .sa-pips[data-k="work-host"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); }
+.sa-subs[data-k="claire"], .sa-pips[data-k="claire"] { --sa-agent: var(--cl-agent, var(--muted-foreground, gray)); }
 .sa-pips { display: inline-flex; gap: 3px; align-items: center; margin-left: 6px; flex: none; transition: opacity .6s; }
 .sa-pips[data-fading] { opacity: .35; }
 .sa-pip { width: 5px; height: 8px; border-radius: var(--cl-radius-sm, 2px); background: var(--cl-unset, var(--muted-foreground, gray)); opacity: .7; }
@@ -140,16 +145,16 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
 .sa-sub-model { flex: none; opacity: .6; font-size: 10px; }
 `;
 
-type Kind = "personal" | "work" | "personal-host" | "work-host";
+type Kind = "personal" | "work" | "personal-host" | "work-host" | "claire";
 type Agent = { kind: Kind; name: string };
 
 const pattern = (value: unknown, fallback: string) => {
   try { return new RegExp(String(value || fallback), "i"); } catch { return new RegExp(fallback, "i"); }
 };
 const HOST_DEFAULT = "\\bhost$";
-/** A machine name -> its agent kind: whose login (work or personal), and whether it's a Host agent. */
-const kindOf = (name: string, work: RegExp, host: RegExp): Kind =>
-  `${work.test(name) ? "work" : "personal"}${host.test(name) ? "-host" : ""}` as Kind;
+/** A machine name -> its agent kind: Claire's own, else whose login (work or personal) and whether it's a Host agent. */
+const kindOf = (name: string, work: RegExp, host: RegExp, claire: RegExp): Kind =>
+  claire.test(name) ? "claire" : `${work.test(name) ? "work" : "personal"}${host.test(name) ? "-host" : ""}` as Kind;
 
 /** Role and who started a session. A thread with a parent is a worker (its lead is the parent, maybe in another
  * project); one without is a lead, started by Claire when its machine matches claireMachines, else by Bdon. */
@@ -312,7 +317,7 @@ function SessionAgents() {
       const host = env ? envHost.get(env) : undefined;
       if (!host || !hostNames.has(host)) return null;
       const name = hostNames.get(host)!;
-      return { kind: kindOf(name, work, hostRe), name };
+      return { kind: kindOf(name, work, hostRe, claireRe), name };
     };
     const resolve = async (threadId: string) => {
       if (pending.has(threadId)) return;
@@ -539,6 +544,15 @@ function SessionAgents() {
         sections.set(sec, [...(sections.get(sec) ?? []), { id: a.dataset.sidebarThreadId!, item, row }]);
       }
       const touched = new Set<HTMLElement>();
+      // bb draws a session's children in a nested list of their own, so each list gets its own layout. A group header
+      // there would repeat the parent's: drop it when the row's bb parent is shown in another list in the same group.
+      const secOf = new Map<string, HTMLElement>();
+      for (const [sec, list] of sections) for (const r of list) secOf.set(r.id, sec);
+      const repeats = (id: string, sec: HTMLElement, g: string | null) => {
+        const par = roles.current.get(id)?.parentThreadId;
+        const ps = par ? secOf.get(par) : undefined;
+        return !!g && !!par && !!ps && ps !== sec && groupFor(par)?.toLowerCase() === g.toLowerCase();
+      };
       for (const [sec, list] of sections) {
         const oneProject = new Set(list.map((r) => roles.current.get(r.id)?.projectId)).size === 1;
         const placed = oneProject ? layout(list.map((r) => r.id), ctx) : new Map();
@@ -558,7 +572,7 @@ function SessionAgents() {
           if (p) {
             item.style.order = String(p.order); item.dataset.saOrder = "";
             if (p.depth) { item.dataset.saDepth = ""; item.style.setProperty("--sa-depth", String(p.depth)); } else { delete item.dataset.saDepth; item.style.removeProperty("--sa-depth"); }
-            if (p.header) {
+            if (p.header && !repeats(id, sec, p.group)) {
               item.dataset.saGh = p.header;
               item.style.setProperty("--sa-g", isHealth(p.header) ? "var(--cl-attention, #ff2e55)" : `var(--cl-accent-${ACCENTS[hue(p.family ?? p.header) % ACCENTS.length]}, gray)`);
               item.style.setProperty("--sa-n", String(p.dashes));
@@ -761,7 +775,7 @@ function SessionHeader() {
   const work = pattern(values?.workMachines, "work");
   const label = String(values?.label ?? "") || "server";
   const host = thread.host?.name ?? null;
-  const kind = host ? kindOf(host, work, pattern(values?.hostMachines, HOST_DEFAULT)) : null;
+  const kind = host ? kindOf(host, work, pattern(values?.hostMachines, HOST_DEFAULT), pattern(values?.claireMachines, "claire")) : null;
   const project = projects.find((p) => p.id === thread.projectId)?.name ?? "project";
   const active = servers?.servers?.find((x) => x.active); // null outside bb Desktop and the mobile app
   const server = active ? { name: active.name, host: active.origin.replace(/^https?:\/\//, "") } : null;

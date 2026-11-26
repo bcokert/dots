@@ -13,7 +13,7 @@ export default async function plugin(bb: BbPluginApi) {
     label: { type: "string", label: "Label after \"Sessions\" in the session list, e.g. which server or domain this is (empty: none)", default: "" },
     workMachines: { type: "string", label: "Machines whose name matches this (regex) get the work icon", default: "work" },
     hostMachines: { type: "string", label: "Machines whose name matches this (regex) are Host agents and get the solid terminal icon", default: "\\bhost$" },
-    claireMachines: { type: "string", label: "Top-level sessions on a machine whose name matches this (regex) read as started by Claire, others by Bdon", default: "claire" },
+    claireMachines: { type: "string", label: "Claire's machines (regex): they get her HUD ring icon, and their top-level sessions read as started by her, others by Bdon", default: "claire" },
     todoUrl: { type: "string", label: "Todo app URL (sessions holding todo claims show as waiting on Bdon)", default: "https://todo.bdon.ca" },
     accessClientId: { type: "string", label: "Cloudflare Access service token: client ID", default: "" },
     accessClientSecret: { type: "string", label: "Cloudflare Access service token: client secret", secret: true },

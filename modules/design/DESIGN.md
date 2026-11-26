@@ -56,7 +56,7 @@ dashboard gets fixed.
   teal, cyan, blue, violet, magenta, gold, slate. They never mean anything. Set one with `data-accent`; everything
   below inherits it. Older tint names in the data map onto these: crimson and rose → magenta, ember, copper and
   amber → gold, green → teal.
-- **Agents are told apart by icon, not colour**: house (a pod on Bdon's personal login), briefcase (work login),
+- **Agents are told apart by icon, not colour**: house (a pod on Bdon's personal login), briefcase (work login), HUD ring (Claire, his chief of staff),
   solid terminal (a Host agent), a person (Bdon), a cog (an app); crown = lead, branch = worker. Icons are
   `--cl-agent` (neutral). A live claim glows `--cl-live`. One copy of the icons (the spec's SVG masks), used by
   every surface.

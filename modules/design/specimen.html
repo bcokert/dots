@@ -397,7 +397,7 @@ a.chip:hover { filter: brightness(1.35); }
       <div class="box it"><div class="lb">Rank bar</div><div id="rkbars" style="display:flex;flex-direction:column;gap:var(--cl-space-3)"></div><span class="cp">low name left, high name right, the value last · all on the fill with a dark halo, no box</span></div>
       <div class="box it"><div class="lb">Who chips</div>
         <div class="demo" id="who"></div>
-        <div class="demo"><a class="chip live" href="#"><i class="wi" data-i="briefcase"></i>4m</a><a class="chip" href="#"><i class="wi" data-i="house"></i>2h</a><span class="chip"><i class="wi" data-i="crown"></i></span><span class="chip"><i class="wi" data-i="branch"></i></span></div>
+        <div class="demo"><a class="chip live" href="#"><i class="wi" data-i="briefcase"></i>4m</a><a class="chip" href="#"><i class="wi" data-i="house"></i>2h</a><a class="chip" href="#"><i class="wi" data-i="ring"></i>1d</a><span class="chip"><i class="wi" data-i="crown"></i></span><span class="chip"><i class="wi" data-i="branch"></i></span></div>
         <span class="cp">icon · claim (glows while live) · role crown or branch · linked to the session</span></div>
       <div class="box it"><div class="lb">Tooltip</div>
         <div class="demo"><span class="tip">Claude Vidyard Pod, claimed 4m ago</span></div>
@@ -470,6 +470,7 @@ const put = (sel, html) => { $(sel).innerHTML = html; };
 /* agent icons: one copy of the SVG masks */
 const SVG = (b) => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${b}</svg>`)}")`;
 const ICONS = {
+  ring: "<path d='M12 2.5a9.5 9.5 0 0 1 8.2 4.7M21.4 12a9.5 9.5 0 0 1-4.7 8.2M12 21.5a9.5 9.5 0 0 1-8.2-4.7M2.6 12a9.5 9.5 0 0 1 4.7-8.2'/><circle cx='12' cy='12' r='4.2' fill='black'/>",
   house: "<path d='M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z'/>",
   briefcase: "<rect x='2.5' y='7' width='19' height='13.5' rx='1.5'/><path d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/><path d='M2.5 13h19'/>",
   terminal: "<defs><mask id='p'><rect width='24' height='24' fill='white'/><path d='M7 9.5l3 2.5-3 2.5M12.5 15H17' stroke='black'/></mask></defs><rect x='1.5' y='3.5' width='21' height='17' rx='3.5' fill='black' stroke='none' mask='url(#p)'/>",

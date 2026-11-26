@@ -66,11 +66,12 @@ function Check({ done, blue, live, sm }: { done: boolean; blue?: boolean; live?:
 
 // --- Who: owner, claim, added by, problems (the todo app's README, "Who does what"). The same chips as the life
 // dashboard's who(item, size) in clarity-todo web/life.html, with bb's session icons and colours copied from the
-// session-agents plugin: house = personal pod, briefcase = work pod, solid terminal = a Host agent, crown = lead,
+// session-agents plugin: house = personal pod, briefcase = work pod, solid terminal = a Host agent, HUD ring = Claire, crown = lead,
 // branch arrow = worker. Keep all three in step. Sizes: "row" (list rows) and "full" (a chat chip's details).
 const svg = (body: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'>${body}</svg>`)}")`;
 const WHO_ICONS: Record<string, string> = {
+  ring: "<path d='M12 2.5a9.5 9.5 0 0 1 8.2 4.7M21.4 12a9.5 9.5 0 0 1-4.7 8.2M12 21.5a9.5 9.5 0 0 1-8.2-4.7M2.6 12a9.5 9.5 0 0 1 4.7-8.2'/><circle cx='12' cy='12' r='4.2' fill='black'/>",
   house: "<path d='M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z'/>",
   briefcase: "<rect x='2.5' y='7' width='19' height='13.5' rx='1.5'/><path d='M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2'/><path d='M2.5 13h19'/>",
   terminal: "<defs><mask id='p'><rect width='24' height='24' fill='white'/><path d='M7 9.5l3 2.5-3 2.5M12.5 15H17' stroke='black'/></mask></defs><rect x='1.5' y='3.5' width='21' height='17' rx='3.5' fill='black' stroke='none' mask='url(#p)'/>",
@@ -194,7 +195,7 @@ const AGENTS: Record<string, Agent> = {
   "claude-personal-host": { name: "Claude Personal Host", i: "terminal", c: "personal" },
   "claude-personal-pod": { name: "Claude Personal Pod", i: "house", c: "personal" },
   "claude-vidyard-pod": { name: "Claude Vidyard Pod", i: "briefcase", c: "work" },
-  "claire": { name: "Claire", i: "house", c: "personal" },
+  "claire": { name: "Claire", i: "ring", c: "personal" },
 };
 const agentOf = (id: string): Agent => AGENTS[id] ?? (/^app:/.test(id) ? { name: id.slice(4), i: "cog", c: "app" } : { name: id, i: "unk", c: "unk" });
 

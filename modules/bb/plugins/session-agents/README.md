@@ -5,7 +5,7 @@ phone's "Recent" list); if bb's markup changes, rows just look normal. Unloading
 
 ## What the marks mean
 
-- **Agent icon:** house = a machine with your own login, briefcase = a work machine, solid terminal = a Host agent
+- **Agent icon:** house = a machine with your own login, briefcase = a work machine, solid terminal = a Host agent, HUD ring = Claire (a machine matching `claireMachines`)
   (runs directly on a computer). A crown or branch arrow on it marks a lead running a team, or a worker.
 - **Groups:** inside a project, sessions sit under a small label with a coloured bar. Health first, then the other
   groups, then everything else. Every group gets its label, even with one session.
