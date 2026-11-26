@@ -19,6 +19,7 @@
 #   BB_ACCESS_CLIENT_ID=...      this computer's Cloudflare Access service token, given to every plugin that talks
 #   BB_ACCESS_CLIENT_SECRET=...  to an app behind Access (plugins with accessClientId / accessClientSecret settings)
 #   BB_PLUGINS_OFF=...     built-in plugins to keep disabled, space-separated (default: environment-git-worktree)
+#   BB_THEME=...           bb theme id to keep active (default: plugin:clarity-theme:clarity)
 #
 # Plugins here are clients of apps' public APIs (through the app's own auth), never of local files or ports, so the
 # same plugin works on every bb server.
@@ -104,6 +105,15 @@ for id in ${BB_PLUGINS_OFF-environment-git-worktree}; do
   fi
   ok "bb-plugin $id: off"
 done
+
+# 1d. Theme: bb wears the Clarity design system (plugins/clarity-theme). Set when it isn't the active one, so a
+# theme picked by hand in Settings lasts until the next run. BB_THEME in bb.env picks another (e.g. "default").
+theme="${BB_THEME:-plugin:clarity-theme:clarity}"
+if [[ "$(bbc theme show --json | jq -r .themeId)" != "$theme" ]]; then
+  bbc theme set "$theme" >/dev/null || fail "bb theme set $theme failed (bb theme list)"
+  fix "theme: $theme"
+fi
+ok "theme $theme"
 
 # 2. Plugin settings
 plugin_setting() { # PLUGIN KEY VALUE
