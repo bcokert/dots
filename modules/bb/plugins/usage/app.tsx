@@ -61,18 +61,25 @@ function left(ms: number, now: number) {
   const m = Math.max(0, Math.round((ms - now) / 60_000));
   return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
 }
-/** Green, yellow from 70%, red from 90%: the old status line's thresholds. */
-const tone = (p: number) => (p >= 90 ? "bg-red-500" : p >= 70 ? "bg-amber-500" : "bg-emerald-500");
-const toneText = (p: number) => (p >= 90 ? "text-red-600 dark:text-red-400" : p >= 70 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400");
+/** A plan window that's fine isn't "done", so it's a neutral meter (info). From 70% or status "warning" it's at risk (wobble); from 90% or "blocked" it's slipping (attention). Each falls back to a bb variable under another theme. */
+const INFO = "var(--cl-info, var(--primary))";
+const WOBBLE = "var(--cl-wobble, var(--warning, var(--primary)))";
+const ATTENTION = "var(--cl-attention, var(--destructive))";
+const tone = (p: number | null | undefined, status?: string | null) =>
+  status === "blocked" || (p ?? 0) >= 90 ? ATTENTION : status === "warning" || (p ?? 0) >= 70 ? WOBBLE : INFO;
+const SQ = { borderRadius: "var(--cl-radius-sm, 2px)" } as const; // bars, dots, swatches, chips
+const PANEL = { borderRadius: "var(--cl-radius-lg, 4px)" } as const; // boxes and buttons
+const MONO = { fontFamily: "var(--cl-font-mono, ui-monospace, monospace)", fontVariantNumeric: "tabular-nums" } as const; // numbers
 const WINDOW_MS: Record<string, number> = { five_hour: 5 * 3_600_000, seven_day: 7 * 24 * 3_600_000 };
 const short: Record<string, string> = { five_hour: "5h", seven_day: "7d" };
 
 // --- Bits ---
 /** Splits a token total into what it costs: fresh input (+cache writes), output, cache reads. Segments are weighted, so they show where the spend went. */
 const KINDS = [
-  { key: "in", label: "input", dot: "bg-sky-500" },
-  { key: "out", label: "output", dot: "bg-violet-500" },
-  { key: "cache", label: "cache", dot: "bg-zinc-400 dark:bg-zinc-500" },
+  // Three of the goal accents that carry no meaning, so the split never reads as good or bad.
+  { key: "in", label: "input", color: "var(--cl-accent-blue, var(--primary))" },
+  { key: "out", label: "output", color: "var(--cl-accent-violet, var(--chart-4, var(--primary)))" },
+  { key: "cache", label: "cache", color: "var(--cl-accent-slate, var(--muted-foreground))" },
 ] as const;
 function parts(t: Tok) { return [t.input + 1.25 * t.cacheWrite, 5 * t.output, 0.1 * t.cacheRead]; }
 function StackBar({ t, scale, h = "h-2" }: { t: Tok; scale: number; h?: string }) {
@@ -80,9 +87,9 @@ function StackBar({ t, scale, h = "h-2" }: { t: Tok; scale: number; h?: string }
   const total = p[0] + p[1] + p[2] || 1;
   const width = Math.max(1.5, Math.min(100, (t.weighted / scale) * 100));
   return (
-    <div className={`${h} w-full overflow-hidden rounded-full bg-muted`}>
-      <div className="flex h-full overflow-hidden rounded-full" style={{ width: `${width}%` }}>
-        {p.map((v, i) => <div key={i} className={KINDS[i].dot} style={{ width: `${(v / total) * 100}%` }} />)}
+    <div className={`${h} w-full overflow-hidden bg-muted`} style={SQ}>
+      <div className="flex h-full overflow-hidden" style={{ ...SQ, width: `${width}%` }}>
+        {p.map((v, i) => <div key={i} style={{ background: KINDS[i].color, width: `${(v / total) * 100}%` }} />)}
       </div>
     </div>
   );
@@ -90,12 +97,12 @@ function StackBar({ t, scale, h = "h-2" }: { t: Tok; scale: number; h?: string }
 function Legend() {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-      {KINDS.map((k) => <span key={k.key} className="flex items-center gap-1"><span className={`size-2 rounded-full ${k.dot}`} />{k.label}</span>)}
+      {KINDS.map((k) => <span key={k.key} className="flex items-center gap-1"><span className="size-2" style={{ ...SQ, background: k.color }} />{k.label}</span>)}
     </div>
   );
 }
 
-/** One plan window as a gauge: the used % big and coloured (green, amber from 70, red from 90) when known; otherwise the status, with the bar showing how much of the window has passed. */
+/** One plan window as a gauge: the used % big and coloured (info; wobble from 70, attention from 90) when known; otherwise the status, with the bar showing how much of the window has passed. */
 function Gauge({ w, now }: { w: Win; now: number }) {
   const span = WINDOW_MS[w.key];
   const known = w.usedPercent !== null;
@@ -103,16 +110,16 @@ function Gauge({ w, now }: { w: Win; now: number }) {
   const elapsed = span && w.resetsAtMs ? ((span - Math.max(0, w.resetsAtMs - now)) / span) * 100 : 0;
   const status = w.status === "blocked" ? "limit reached" : w.status === "warning" ? "near limit" : "ok";
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 rounded-lg bg-muted/50 px-3 py-2.5">
+    <div className="flex min-w-0 flex-col gap-1.5 bg-muted/50 px-3 py-2.5" style={PANEL}>
       <div className="flex items-baseline justify-between gap-2">
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{short[w.key] ?? w.label}</span>
         {w.resetsAtMs ? <span className="text-[11px] tabular-nums text-muted-foreground">in {left(w.resetsAtMs, now)}</span> : null}
       </div>
       {known
-        ? <div className={`text-3xl font-semibold leading-none tabular-nums ${toneText(p)}`}>{Math.round(p)}<span className="text-lg">%</span></div>
-        : <div className={`text-xl font-semibold leading-none ${w.status === "blocked" ? "text-red-600 dark:text-red-400" : w.status === "warning" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`} title="Used % isn't available for this machine's account; the bar shows how much of the window has passed">{status}</div>}
-      <div className="h-2 w-full overflow-hidden rounded-full bg-background">
-        <div className={`h-full rounded-full ${known ? tone(p) : "bg-foreground/25"}`} style={{ width: `${Math.max(2, Math.min(100, known ? p : elapsed))}%` }} />
+        ? <div className="text-3xl font-semibold leading-none" style={{ ...MONO, color: tone(p, w.status) }}>{Math.round(p)}<span className="text-lg">%</span></div>
+        : <div className="text-xl font-semibold leading-none" style={{ color: tone(null, w.status) }} title="Used % isn't available for this machine's account; the bar shows how much of the window has passed">{status}</div>}
+      <div className="h-2 w-full overflow-hidden bg-background" style={SQ}>
+        <div className={`h-full ${known ? "" : "bg-foreground/25"}`} style={{ ...SQ, ...(known ? { background: tone(p, w.status) } : {}), width: `${Math.max(2, Math.min(100, known ? p : elapsed))}%` }} />
       </div>
       {w.resetsAtMs ? <span className="text-[11px] tabular-nums text-muted-foreground">resets {resetText(w.resetsAtMs, now)}{known ? "" : " · bar = time passed"}</span> : null}
     </div>
@@ -126,7 +133,7 @@ function SectionHead({ title, value, sub }: { title: string; value?: string; sub
         <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</h2>
         {sub ? <span className="text-[11px] text-muted-foreground">{sub}</span> : null}
       </div>
-      {value ? <div className="text-2xl font-semibold leading-tight tabular-nums">{value}</div> : null}
+      {value ? <div className="text-2xl font-semibold leading-tight" style={MONO}>{value}</div> : null}
     </div>
   );
 }
@@ -134,8 +141,8 @@ function SectionHead({ title, value, sub }: { title: string; value?: string; sub
 function TokLine({ t }: { t: Tok }) {
   const vals = [t.input + t.cacheWrite, t.output, t.cacheRead];
   return (
-    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground">
-      {KINDS.map((k, i) => <span key={k.key} className="flex items-center gap-1"><span className={`size-1.5 rounded-full ${k.dot}`} />{compact(vals[i])}</span>)}
+    <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground" style={MONO}>
+      {KINDS.map((k, i) => <span key={k.key} className="flex items-center gap-1"><span className="size-1.5" style={{ ...SQ, background: k.color }} />{compact(vals[i])}</span>)}
     </span>
   );
 }
@@ -151,7 +158,7 @@ function MachineBlock({ m, now, compactMode = false }: { m: Machine; now: number
       {m.extra ? (
         <div className="flex items-baseline gap-2 text-sm">
           <span className="text-xs uppercase tracking-wide text-muted-foreground">extra</span>
-          <span className="text-lg font-semibold tabular-nums">${(m.extra.usedUsdCents / 100).toFixed(2)}</span>
+          <span className="text-lg font-semibold" style={MONO}>${(m.extra.usedUsdCents / 100).toFixed(2)}</span>
           <span className="text-xs text-muted-foreground">of ${(m.extra.limitUsdCents / 100).toFixed(0)}</span>
         </div>
       ) : m.overage?.status ? (
@@ -161,7 +168,7 @@ function MachineBlock({ m, now, compactMode = false }: { m: Machine; now: number
         <div className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-xs text-muted-foreground">Spent on this machine, last 5h</span>
-            <span className="text-lg font-semibold tabular-nums">{compact(m.window5h.tok.weighted)}</span>
+            <span className="text-lg font-semibold" style={MONO}>{compact(m.window5h.tok.weighted)}</span>
           </div>
           <StackBar t={m.window5h.tok} scale={m.window5h.tok.weighted} h="h-2.5" />
           <TokLine t={m.window5h.tok} />
@@ -169,7 +176,7 @@ function MachineBlock({ m, now, compactMode = false }: { m: Machine; now: number
             <div key={l.id} className="flex flex-col gap-1 pt-1">
               <div className="flex items-baseline gap-2">
                 <span className="min-w-0 flex-1 truncate text-xs">{l.title}</span>
-                <span className="text-sm font-semibold tabular-nums">{compact(l.tok.weighted)}</span>
+                <span className="text-sm font-semibold" style={MONO}>{compact(l.tok.weighted)}</span>
               </div>
               <StackBar t={l.tok} scale={max} />
             </div>
@@ -187,7 +194,7 @@ function Unit() {
 
 function UsageTab({ threadId }: { threadId: string }) {
   const { data, error } = useOverview(threadId);
-  if (error && !data) return <div className="px-3 py-3 text-sm text-destructive">{error}</div>;
+  if (error && !data) return <div className="px-3 py-3 text-sm" style={{ color: ATTENTION }}>{error}</div>;
   if (!data) return <div className="px-3 py-3 text-sm text-muted-foreground">Reading usage…</div>;
   const th = data.thread;
   const mine = data.machines.find((m) => m.hostId === th?.machine.hostId);
@@ -216,7 +223,7 @@ function UsageTab({ threadId }: { threadId: string }) {
                 <div key={t.id} className="flex flex-col gap-1.5 border-t border-border/60 py-2.5 first:border-t-0">
                   <div className="flex items-start gap-3">
                     <span className="min-w-0 flex-1 text-xs leading-snug line-clamp-2" title={t.prompt}>{t.prompt || "(turn)"}</span>
-                    <span className={`flex-none tabular-nums ${big ? "text-lg font-bold" : "text-base font-semibold"}`}>{compact(t.tok.weighted)}</span>
+                    <span className={`flex-none ${big ? "text-lg font-bold" : "text-base font-semibold"}`} style={MONO}>{compact(t.tok.weighted)}</span>
                   </div>
                   <StackBar t={t.tok} scale={maxTurn} />
                   <div className="flex items-baseline justify-between gap-2">
@@ -241,9 +248,9 @@ function UsageTab({ threadId }: { threadId: string }) {
               <div key={r.id} className="flex flex-col gap-1">
                 <div className="flex items-baseline gap-2">
                   <span className={`min-w-0 flex-1 truncate text-xs ${r.current ? "font-semibold" : ""}`}>
-                    {r.role === "lead" ? <span className="mr-1.5 rounded bg-foreground px-1 py-px text-[10px] font-semibold uppercase text-background">lead</span> : null}{r.title}{r.current ? " (this)" : ""}
+                    {r.role === "lead" ? <span className="mr-1.5 bg-foreground px-1 py-px text-[10px] font-semibold uppercase text-background" style={SQ}>lead</span> : null}{r.title}{r.current ? " (this)" : ""}
                   </span>
-                  <span className="flex-none text-sm font-semibold tabular-nums">{compact(r.tok.weighted)}</span>
+                  <span className="flex-none text-sm font-semibold" style={MONO}>{compact(r.tok.weighted)}</span>
                 </div>
                 <StackBar t={r.tok} scale={maxRow} />
               </div>
@@ -265,7 +272,7 @@ function UsageTab({ threadId }: { threadId: string }) {
 // --- The sidebar card ---
 function UsageCard() {
   const { data, error } = useOverview(null);
-  if (error && !data) return <div className="p-3 text-sm text-destructive">{error}</div>;
+  if (error && !data) return <div className="p-3 text-sm" style={{ color: ATTENTION }}>{error}</div>;
   if (!data) return <div className="p-3 text-sm text-muted-foreground">Reading usage…</div>;
   return (
     <div className="flex max-h-[70vh] flex-col gap-5 overflow-y-auto p-3">
@@ -275,6 +282,21 @@ function UsageCard() {
 }
 
 // --- The composer chip ---
+// On a phone bb collapses the composer to its text box and hides every action until it's tapped, so there the chip
+// is a bare banner above the composer instead (always visible), and the action stands down: one chip either way.
+const COMPACT = "(max-width: 767px)";
+function useCompact() {
+  const [compact, set] = useState(() => typeof window !== "undefined" && window.matchMedia(COMPACT).matches);
+  useEffect(() => {
+    const mq = window.matchMedia(COMPACT);
+    const on = () => set(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return compact;
+}
+const UsageChipAction = () => (useCompact() ? null : <UsageChip />);
+const UsageChipBanner = () => (useCompact() ? <div className="flex px-1"><UsageChip /></div> : null);
 function UsageChip() {
   const composer = useComposer();
   const panel = useAppPanel();
@@ -285,13 +307,13 @@ function UsageChip() {
   const w = m?.windows.find((x) => x.key === "five_hour");
   const last = data.thread.turns[0];
   const pct = w?.usedPercent;
-  const dot = !w ? "bg-muted-foreground/40" : w.status === "blocked" || (pct ?? 0) >= 90 ? "bg-red-500" : w.status === "warning" || (pct ?? 0) >= 70 ? "bg-amber-500" : "bg-emerald-500";
+  const color = w ? tone(pct, w.status) : null;
   const open = () => panel.openTab({ tab: { id: "usage", context: { kind: "thread" }, availability: "action" }, params: {} });
   return (
-    <button type="button" onClick={open} className="flex items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" title={`Usage · ${data.thread.machine.name}`}>
-      <span className={`size-1.5 rounded-full ${dot}`} />
-      <span className={`tabular-nums ${pct != null ? toneText(pct) : ""}`}>5h{pct != null ? ` ${Math.round(pct)}%` : ""}{w?.resetsAtMs ? ` ↻${clock(w.resetsAtMs)}` : ""}</span>
-      {last && last.tok.calls ? <span className="tabular-nums">· {compact(last.tok.weighted)}</span> : null}
+    <button type="button" onClick={open} className="flex items-center gap-1.5 px-1.5 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground" style={PANEL} title={`Usage · ${data.thread.machine.name}`}>
+      <span className={`size-1.5 ${color ? "" : "bg-muted-foreground/40"}`} style={{ ...SQ, ...(color ? { background: color } : {}) }} />
+      <span style={{ ...MONO, ...(pct != null && color ? { color } : {}) }}>5h{pct != null ? ` ${Math.round(pct)}%` : ""}{w?.resetsAtMs ? ` ↻${clock(w.resetsAtMs)}` : ""}</span>
+      {last && last.tok.calls ? <span style={MONO}>· {compact(last.tok.weighted)}</span> : null}
     </button>
   );
 }
@@ -303,5 +325,5 @@ export default definePluginApp((app) => {
     component: ({ threadId }: { threadId: string }) => <UsageTab threadId={threadId} />,
   });
   app.experimental_sidebarFooter.register({ kind: "disclosure", id: "usage", label: "Usage", icon: "ChartColumn", component: UsageCard });
-  app.composer.customize({ id: "usage-chip", scopes: ["thread"], actions: [{ id: "chip", component: UsageChip }] });
+  app.composer.customize({ id: "usage-chip", scopes: ["thread"], actions: [{ id: "chip", component: UsageChipAction }], banners: [{ id: "chip-phone", chrome: "bare", component: UsageChipBanner }] });
 });

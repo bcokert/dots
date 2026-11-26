@@ -1,5 +1,5 @@
-// archive-pending: rows of sessions marked done (bb archive-pending mark) get an amber archive mark after the title
-// and a dimmed title, in the sidebar and in the phone's "Recent" list, until they're archived or talked to again (rule.ts).
+// archive-pending: rows of sessions marked done (bb archive-pending mark) get a green (done) archive mark after the title
+// and a muted title, in the sidebar and in the phone's "Recent" list, until they're archived or talked to again (rule.ts).
 // bb's row menu already has Archive, so there's no second one here. bb has no slot for row styling that's on by
 // default (thread row metadata needs an experiment and a setting), so this decorates bb's own DOM, like
 // session-agents, and undoes it all when the plugin unloads. If bb's markup changes, rows just look normal.
@@ -12,9 +12,9 @@ const ARCHIVE = `url("data:image/svg+xml,${encodeURIComponent(
 )}")`;
 const TIP = "Done: waiting to be archived (row menu → Archive). Writing to it again clears this.";
 const CSS = `
-[data-ap-pending] .bb-thread-title { opacity: .55; }
+[data-ap-pending] .bb-thread-title { color: var(--cl-text-muted, var(--muted-foreground)); }
 .ap-mark { width: 12px; height: 12px; flex: none; margin-left: 6px; align-self: center;
-  background-color: light-dark(#b7791f, #f0b44c);
+  background-color: var(--cl-good, var(--success, currentColor));
   -webkit-mask: ${ARCHIVE} center / contain no-repeat; mask: ${ARCHIVE} center / contain no-repeat; }
 `;
 const POLL_MS = 60_000; // backstop only: status changes below trigger the real refreshes

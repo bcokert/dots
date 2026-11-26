@@ -5,7 +5,7 @@ description: When a session's job is finished, end with one Archive button and m
 
 # Finished sessions ask to be archived
 
-The user has the archive-pending bb-plugin. A session whose job is done shows an amber archive mark in the session
+The user has the archive-pending bb-plugin. A session whose job is done shows a green archive mark in the session
 list until it's archived or the user writes to it again. The mark is derived from state: it counts only if it was set after the latest user message, so writing to the session hides it and marking again in the new turn shows it again.
 
 When the job is finished (the work is done and verified, nothing is waiting on the user):

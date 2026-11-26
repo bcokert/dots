@@ -9,7 +9,7 @@
   },
   "bb": {
     "name": "Archive pending",
-    "description": "A session whose job is done marks itself (bb archive-pending mark); its row in the session list gets an amber archive mark until it's archived or the conversation goes on.",
+    "description": "A session whose job is done marks itself (bb archive-pending mark); its row in the session list gets a green archive mark until it's archived or the conversation goes on.",
     "branding": {
       "icon": "Archive"
     },
