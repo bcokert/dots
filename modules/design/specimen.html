@@ -493,7 +493,7 @@ const TEXTS = [["strong", "names, values, anything you act on"], ["", "body"], [
 put("#texts", TEXTS.map(([n, d]) => { const name = "--cl-text" + (n ? "-" + n : ""), r = ratio(tok(name), bg3);
   return `<div class="tx"><div style="min-width:0"><b style="color:var(${name})">Aa The quick fox</b><div class="tk">${name} · ${tok(name)}</div><div class="cp">${d}</div></div><span class="r" style="color:var(--cl-${r >= 4.5 ? "good" : "attention"})">${r.toFixed(1)}:1</span></div>`; }).join(""));
 
-const MEANS = [["primary","primary action, selection, a live claim"],["info","info, counts, links, focus, drop targets"],["good","hit, done, saved"],["attention","missed, broken, error, slipping"],["wobble","paused, syncing, at risk"],["today","today's cell while unmarked"],["live","in flight (= primary)"]];
+const MEANS = [["primary","primary action, selection, a live claim"],["info","info, counts, links, focus, drop targets"],["good","hit, done, saved"],["attention","missed, broken, error, slipping"],["wobble","paused, syncing, at risk"],["today","today's cell while unmarked"],["live","in flight (= primary)"],["you-edge","Bdon's own chat turn: a --cl-you wash with this edge"]];
 put("#means", MEANS.map(([n, d]) => `<div class="sw"><i style="--c:var(--cl-${n})"></i><div><code>--cl-${n}</code><span>${d}</span></div></div>`).join(""));
 
 put("#ranks", Array.from({ length: 11 }, (_, n) => `<div style="background:color-mix(in oklab, var(--cl-rank-hi) ${n * 10}%, var(--cl-rank-lo))"><span>${n}</span></div>`).join(""));

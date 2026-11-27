@@ -107,8 +107,8 @@
    - inline code: bb's pill was 4px; chips are 2px. Code blocks: bb draws a 1px outline plus a fill; inside content
      boxes are fills, so the outline goes (the wrapper is the parent of the <pre>, found with :has(> pre)).
    - user message: bb draws a right-aligned bubble (rounded-xl, border, fill). The wrapper is the one that holds
-     [data-image-gallery-clipped]; it is now a left hairline with a faint neutral wash, no bubble (first a bare
-     hairline over a squared fill box; the wash added 2026-11-26 so his turns read apart from the agent's). The bubble's outer wrappers carry only layout classes (ml-auto, w-fit,
+     [data-image-gallery-clipped]; it is now a blue --cl-you wash with a --cl-you-edge hairline, no bubble (first a bare
+     hairline over a squared fill box; a neutral wash 2026-11-26, then blue, Bdon's pick, so his turns read apart from the agent's). The bubble's outer wrappers carry only layout classes (ml-auto, w-fit,
      max-w-[70%]), reached as the direct child of [data-message-column].
    - composer: [data-promptbox] was 8px with a lift shadow; inputs are 4px and flat. Its editor text 13 -> 14.
    - mention pills ([data-prompt-mention], thread links in prose) were rounded-full: now 2px chips.
@@ -173,9 +173,9 @@
 [data-timeline-row-id*=":user"] [data-message-column] > div > div { width: 100%; max-width: none; align-items: stretch; }
 [data-timeline-row-id*=":user"] [data-message-column] div:has(> [data-image-gallery-clipped]) {
   border: 0;
-  border-left: 2px solid var(--cl-text-muted);
+  border-left: 2px solid var(--cl-you-edge);
   border-radius: 0 var(--cl-radius-lg) var(--cl-radius-lg) 0;
-  background: var(--cl-fill);
+  background: var(--cl-you);
   padding: var(--cl-space-3) var(--cl-space-5);
   margin: calc(-1 * var(--cl-space-3)) 0;
   max-width: none;

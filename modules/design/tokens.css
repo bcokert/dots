@@ -42,6 +42,8 @@
   --cl-focus: var(--cl-info);
   --cl-selected: color-mix(in srgb, var(--cl-primary) 18%, transparent); /* selected or pressed: a tint, never an outline */
   --cl-live: var(--cl-primary);              /* in flight: a claimed todo, a running session */
+  --cl-you: color-mix(in srgb, var(--cl-primary) 12%, transparent);       /* Bdon's own turn in a chat: the wash */
+  --cl-you-edge: color-mix(in srgb, var(--cl-primary) 75%, var(--cl-bg)); /* ...and its 2px left edge (3.8:1 on --cl-bg) */
 
   /* ranks (0-10): a blue scale, never red. Low = still learning */
   --cl-rank-lo: #1f3f9e;

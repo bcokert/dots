@@ -51,6 +51,7 @@ dashboard gets fixed.
 | `--cl-wobble` (amber) | paused, syncing, at risk | an accent |
 | `--cl-today` (white) | today's cell, unmarked | a control |
 | `--cl-rank-lo` → `--cl-rank-hi` | a 0-10 rank, deep blue to bright cyan | red, ever: low means still learning |
+| `--cl-you` / `--cl-you-edge` (blue) | Bdon's own turn in a chat: a 12% `--cl-primary` wash with a 2px left edge. Not selection: selection is an 18% tint with no edge, on a row you can pick; this is a turn you read | anything but his own messages |
 
 - **Accents** belong to a goal (or a checkin group) and colour only its edge bar, its title and its heading square:
   teal, cyan, blue, violet, magenta, gold, slate. They never mean anything. Set one with `data-accent`; everything
