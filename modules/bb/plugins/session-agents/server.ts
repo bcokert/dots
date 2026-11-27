@@ -72,6 +72,7 @@ export default async function plugin(bb: BbPluginApi) {
   };
   const sweeper = setInterval(() => void sweep(), 10_000);
   sweeper.unref?.();
+  bb.onDispose(() => clearInterval(sweeper));
   void (async () => {
     try {
       const all = await bb.sdk.threads.list({ archived: false });
