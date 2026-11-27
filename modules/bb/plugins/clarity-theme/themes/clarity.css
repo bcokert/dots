@@ -330,16 +330,19 @@
 /* thread links and mentions are chips: squares, not pills */
 [data-prompt-mention][data-prompt-mention] { border-radius: var(--cl-radius-sm); }
 
-/* the user's message: flat on the page, full width, a quiet left hairline; no bubble (Principle 1) */
+/* the user's message: full width, a left hairline and a faint neutral wash, so Bdon's turns read apart from the
+   agent's at a glance (Bdon 2026-11-26; no hue, since no colour means "Bdon"). No bubble (Principle 1). The wash's
+   vertical padding is cancelled by an equal negative margin, so rows keep their height and place */
 /* 8px in each side lines it up with the assistant's text column */
 [data-timeline-row-id*=":user"] [data-message-column] > div { width: calc(100% - 16px); max-width: none; margin-left: var(--cl-space-4); align-items: stretch; }
 [data-timeline-row-id*=":user"] [data-message-column] > div > div { width: 100%; max-width: none; align-items: stretch; }
 [data-timeline-row-id*=":user"] [data-message-column] div:has(> [data-image-gallery-clipped]) {
   border: 0;
-  border-left: 2px solid var(--cl-line-2);
-  border-radius: 0;
-  background: transparent;
-  padding: 0 0 0 var(--cl-space-5);
+  border-left: 2px solid var(--cl-text-muted);
+  border-radius: 0 var(--cl-radius-lg) var(--cl-radius-lg) 0;
+  background: var(--cl-fill);
+  padding: var(--cl-space-3) var(--cl-space-5);
+  margin: calc(-1 * var(--cl-space-3)) 0;
   max-width: none;
   color: var(--cl-text-strong);
 }
