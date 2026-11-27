@@ -33,8 +33,12 @@ The system is three files in dots, `<dots>/modules/design/` (on every machine); 
   Use `var(--cl-…, var(<bb variable>))` so the plugin still reads when another theme is on; Tailwind's host token
   classes (`bg-card`, `text-muted-foreground`, …) already follow the theme.
 - **genui blocks and inline previews in bb**: bb's variables (`--foreground`, `--primary`, …) are Clarity's while
-  the theme is on. A standalone HTML preview that can't load sibling files: `python3 <dots>/modules/design/bundle.py <page> <out>`
-  inlines the tokens and fonts.
+  the theme is on, but the `--cl-*` tokens don't reach the preview's frame.
+- **Any HTML page shown in bb chat** (an `inline-vis` directive or block, an `app` block, a mockup) **is one file.**
+  Sibling files don't load there, whatever the inline-vis skill says: a page that links `tokens.css` or the fonts
+  shows up unstyled (Bdon hit this twice, the second time 2026-11-27). Build the page with its links as usual, then
+  `python3 <dots>/modules/design/bundle.py <page> <page>.bundle.html` and show only the bundle. Check it the way it
+  will be seen: copy the bundle alone into an empty folder and screenshot it from there.
 - **The bb theme itself**: `modules/design/bb-theme.css` (hand-written mapping) and, from dots,
   `python3 modules/design/bb-theme.py modules/bb/plugins/clarity-theme/themes/clarity.css`. Re-run after any tokens.css change.
 
