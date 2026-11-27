@@ -52,13 +52,14 @@ dashboard gets fixed.
 | `--cl-today` (white) | today's cell, unmarked | a control |
 | `--cl-rank-lo` → `--cl-rank-hi` | a 0-10 rank, deep blue to bright cyan | red, ever: low means still learning |
 | `--cl-you` / `--cl-you-edge` (blue) | Bdon's own turn in a chat: a 12% `--cl-primary` wash with a 2px left edge. Not selection: selection is an 18% tint with no edge, on a row you can pick; this is a turn you read | anything but his own messages |
+| `--cl-agent-claire` / `-personal` / `-work` | whose turn it is in a chat, for an agent: Claire pink-magenta, Bdon's personal login (pods and Host agent) teal, the work login violet. A 6% wash (`--cl-agent-wash`) and a 2px edge at 75%: the session's own agent on the right, an agent talking to it on the left, like Bdon's | icons, chips, rows, anything outside a chat turn |
 
 - **Accents** belong to a goal (or a checkin group) and colour only its edge bar, its title and its heading square:
   teal, cyan, blue, violet, magenta, gold, slate. They never mean anything. Set one with `data-accent`; everything
   below inherits it. Older tint names in the data map onto these: crimson and rose → magenta, ember, copper and
   amber → gold, green → teal.
-- **Agents are told apart by icon, not colour**: house (a pod on Bdon's personal login), briefcase (work login), HUD ring (Claire, his chief of staff),
-  solid terminal (a Host agent), a person (Bdon), a cog (an app); crown = lead, branch = worker. Icons are
+- **Agents are told apart by icon; in a chat, also by colour** (the `--cl-agent-*` row above, Bdon 2026-11-26: he mixed up sessions): house (a pod on Bdon's personal login), briefcase (work login), HUD ring (Claire, his chief of staff),
+  solid terminal (a Host agent), a person (Bdon), a cog (an app); crown = lead, branch = worker. Icons stay
   `--cl-agent` (neutral). A live claim glows `--cl-live`. One copy of the icons (the spec's SVG masks), used by
   every surface.
 - **Contrast floor**: text is at least 4.5:1 on the lightest surface it sits on (`--cl-text-muted` is that floor).

@@ -13,6 +13,8 @@
 //     subagent of the latest turn (pulsing while running, green done, red failed; fading out after the turn ends),
 //     and a small dim indented row per running one with a cog icon, its description and model. They are
 //     read from the thread's timeline every ~4 s, only for threads that are running; not clickable as threads.
+//   - Chat turns say which agent wrote them: data-sa-from=<kind> on each timeline row an agent wrote (the session's
+//     replies, a spawned session's first prompt, messages from other sessions). The Clarity theme colours them.
 // bb has no slot for these, so this decorates bb's own DOM (as its plugin docs recommend for that) from one
 // always-mounted component, and undoes everything when the plugin unloads. If bb's markup changes, rows simply
 // fall back to the provider's mark.
@@ -629,12 +631,50 @@ function SessionAgents() {
           icon.title = tip;
         }
       }
+      paintChat();
       paintSubs();
       paintJobs();
       paintStructure();
       shorten();
       relabel();
       observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    };
+    // Who wrote each chat turn, as data-sa-from=<kind> on its timeline row, for the theme to colour (bb's DOM says
+    // nothing about authors). A row id starts with its thread's id. The thread's own replies are its agent; the
+    // seed prompt (user-seed:1) of a spawned thread is its parent's; a collapsed "Message from <thread>" row is that
+    // thread's; an "<child title> finished" row is that child's. Bdon's own turns get nothing and keep --cl-you.
+    const fromOf = (id: string): string | undefined => {
+      if (!threadEnv.has(id)) { if (Date.now() - (missedAt.get(id) ?? 0) >= RETRY_MS) void resolve(id); return undefined; }
+      return agentOf(id)?.kind;
+    };
+    const paintChat = () => {
+      for (const row of document.querySelectorAll<HTMLElement>("[data-timeline-row-id]")) {
+        const rid = row.dataset.timelineRowId!;
+        const tid = rid.slice(0, rid.indexOf(":"));
+        let from: string | undefined;
+        if (rid.includes(":assistant:")) from = fromOf(tid);
+        else if (rid.includes(":user-seed:")) {
+          const head = row.querySelector<HTMLElement>(":scope > div > div > button");
+          if (head) {
+            const res = head.querySelector("[data-prompt-mention-resource]")?.getAttribute("data-prompt-mention-resource");
+            let sender: string | undefined;
+            try { sender = res ? (JSON.parse(res) as { threadId?: string }).threadId : undefined; } catch { /* not a thread */ }
+            if (!sender) {
+              const title = head.querySelector("[title]")?.getAttribute("title") ?? "";
+              let best = "";
+              for (const t of roles.current.values()) {
+                if (t.parentThreadId === tid && title.startsWith(t.displayTitle + " ") && t.displayTitle.length > best.length) { best = t.displayTitle; sender = t.id; }
+              }
+            }
+            if (sender) from = fromOf(sender);
+          } else if (rid.endsWith(":user-seed:1")) {
+            const parent = roles.current.get(tid)?.parentThreadId;
+            if (parent) from = fromOf(parent);
+          }
+        }
+        if (from) { if (row.dataset.saFrom !== from) row.dataset.saFrom = from; }
+        else if (row.dataset.saFrom !== undefined) delete row.dataset.saFrom;
+      }
     };
     const schedule = () => { if (!frame && !stopped) frame = requestAnimationFrame(paint); };
     bump.current = schedule;
@@ -667,6 +707,7 @@ function SessionAgents() {
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-section]")) delete el.dataset.saSection;
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-prio]")) delete el.dataset.saPrio;
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-health]")) delete el.dataset.saHealth;
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-from]")) delete el.dataset.saFrom;
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-job]")) { delete el.dataset.saJob; delete el.dataset.saHot; el.style.removeProperty("--sa-job"); }
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-short]")) unshorten(el);
       style.remove();

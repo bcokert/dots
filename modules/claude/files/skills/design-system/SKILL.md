@@ -45,6 +45,6 @@ The system is three files in dots, `<dots>/modules/design/` (on every machine); 
 - Rounded squares, never circles or pills: 2px for anything smaller than a row, 4px for panels, buttons, inputs.
 - Glow means now or earned. Nothing decorative glows.
 - Inside a panel, boxes are fills, never outlines. Chrome sits in panels; content you read sits flat on the page.
-- Agents are told apart by icon, not colour. Metadata is a chip, never part of a title.
+- Agents are told apart by icon; only a chat turn also takes its agent's hue (`--cl-agent-*`). Metadata is a chip, never part of a title.
 - Dark only: every page declares `<meta name="color-scheme" content="dark">` and `<meta name="darkreader-lock">`.
 - Fonts are self-hosted, never a font CDN.

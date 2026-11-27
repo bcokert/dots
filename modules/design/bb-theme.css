@@ -185,3 +185,34 @@
 /* the composer: an input, 4px and flat */
 [data-promptbox] { border-radius: var(--cl-radius-lg); box-shadow: none; }
 [data-promptbox-editor-content][data-promptbox-editor-content] { font-size: var(--cl-text-14); }
+
+/* an agent's turn: its hue (--cl-agent-*), from data-sa-from=<kind>, which the session-agents plugin stamps on each
+   timeline row an agent wrote (bb's DOM has no author). Half Bdon's wash and a 2px edge: the session's own agent on
+   the right, an agent talking to it (a spawn prompt, a "Message from" row) on the left. Bdon 2026-11-26. Every wash
+   is padding cancelled by an equal negative margin, or a background on an existing box: no row moves or grows */
+[data-sa-from] {
+  --cl-them: var(--cl-agent-personal);
+  --cl-them-wash: color-mix(in srgb, var(--cl-them) var(--cl-agent-wash), transparent);
+  --cl-them-edge: color-mix(in srgb, var(--cl-them) 75%, var(--cl-bg));
+}
+[data-sa-from="claire"] { --cl-them: var(--cl-agent-claire); }
+[data-sa-from^="work"] { --cl-them: var(--cl-agent-work); }
+/* the session's own reply: the markdown block, out to the column's 8px padding */
+[data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable] {
+  background: var(--cl-them-wash);
+  box-shadow: inset -2px 0 0 var(--cl-them-edge);
+  border-radius: var(--cl-radius-lg) 0 0 var(--cl-radius-lg);
+  padding: var(--cl-space-3) var(--cl-space-4);
+  margin: calc(-1 * var(--cl-space-3)) calc(-1 * var(--cl-space-4));
+}
+/* a spawned session's first prompt: Bdon's box, the spawner's hue */
+[data-timeline-row-id*=":user"][data-sa-from] [data-message-column] div:has(> [data-image-gallery-clipped]) {
+  border-left-color: var(--cl-them-edge);
+  background: var(--cl-them-wash);
+}
+/* "Message from <session>" and "<child> finished": bb's collapsed one-liners */
+[data-timeline-row-id*=":user-seed:"][data-sa-from] > .rounded-md {
+  background: var(--cl-them-wash);
+  box-shadow: inset 2px 0 0 var(--cl-them-edge);
+  border-radius: 0 var(--cl-radius-lg) var(--cl-radius-lg) 0;
+}

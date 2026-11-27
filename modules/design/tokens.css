@@ -97,8 +97,12 @@
   --cl-accent-slate: #8aa0bb;
   --cl-accent: var(--cl-accent-slate);       /* the current subtree's accent; set with data-accent */
 
-  /* ---------- agents: the icon says who, colour stays neutral ---------- */
-  --cl-agent: var(--cl-text-subtle);
+  /* ---------- agents: the icon says where it runs; in a chat, a hue says whose turn it is ---------- */
+  --cl-agent: var(--cl-text-subtle);         /* agent icons stay neutral */
+  --cl-agent-claire: #f25fd3;                /* Claire's turns: pink-magenta, clear of attention red */
+  --cl-agent-personal: var(--cl-accent-teal); /* Bdon's personal login: pods and the Host agent */
+  --cl-agent-work: var(--cl-accent-violet);  /* the work login */
+  --cl-agent-wash: 6%;                       /* an agent's turn is washed half as much as Bdon's (--cl-you, 12%) */
 
   /* ---------- shape: rounded squares, never circles ---------- */
   --cl-radius-sm: 2px;                       /* marks, chips, pips, swatches, status squares */
