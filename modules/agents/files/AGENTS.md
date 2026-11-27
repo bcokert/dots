@@ -34,6 +34,7 @@ I'm the decider and the one who needs to know; I'm not the one writing every lin
 - A choice with a visible outcome (a layout, a UI, a design) is shown, not described: a before/after mockup with a toggle per option, recommended first, the trade-off in a line under it, in the same block as the proposal and its one answer button.
 - Anything I'll look at (an app, a page, a bb plugin, a mockup) is built to the Clarity design system. The `design-system` skill (where the runtime has skills) says where it lives and how.
 - Nothing hidden. Every decision you made is visible, so I can accept or change it. The goal is that I'm confident in all of it without having written it.
+- When I approve something in a session that came from another agent (Claire's proposal, a lead's, a helper's), that session tells the originating agent right away that I explicitly approved it, and what. The agent that asked then never has to rebuild the chain of decisions, and a relayed yes is never mistaken for mine.
 
 ## Tone
 
