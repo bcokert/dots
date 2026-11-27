@@ -93,6 +93,9 @@ You're a subagent of a lead session (<thread id>, project <name>). <One line: th
 ## Verify           exactly how (commands, URLs, screenshot sizes, tool quirks on this box)
 ## Budget           a time box in tool calls (it can count those), plus rough tokens
 ## Report           short: what changed (files), decisions made, how it was checked, what's uncertain
+                    files for a session on another machine (a pod): handed over so it can open them
+                    (on the Clarity host: `clarity-handoff <files>`, then its printed lines verbatim), never a
+                    path only the sender's machine can see
 ```
 
 Run it in the background (`run_in_background`) unless the next step needs it, so Bdon can keep talking to you.
@@ -139,5 +142,7 @@ Only when Bdon would want to open and steer that piece himself, it must outlive 
 
 `bb thread spawn --project <id> --environment <env id or path> --parent-self --lifecycle-owner-thread "$BB_THREAD_ID" --model <model> --reasoning-level <level> --title "<slice>" --prompt-file <brief>`
 
-Same brief, and tag it (above). It claims its todo as a worker, the todo app's way (its README, "Who does what"). Archive it
+Same brief, and tag it (above). A child on another machine than yours (a Host session spawned from a pod) can't
+open your thread storage, nor you its: its brief says how files come back (on the Clarity host, `clarity-handoff`,
+which hands them to its spawner). It claims its todo as a worker, the todo app's way (its README, "Who does what"). Archive it
 (`bb thread archive <id>`) once its work is reviewed and committed.
