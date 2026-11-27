@@ -20,9 +20,27 @@ phone's "Recent" list); if bb's markup changes, rows just look normal. Unloading
 - **Urgent / blocking:** a flat tinted row and an icon. Blocking (red, stop sign): the spawner can't proceed
   without it. Urgent (amber, bolt): it fixes something critical. Hover for the reason. It stays until the session is
   archived or cleared.
-- **Waiting on Bdon:** a small hourglass beside the title of a session that is idle (not running, not archived) but
-  still holds `doing::` todo claims: it stopped and is parked, not abandoned. Hover: the claimed todos, up to five.
+- **Parked:** a small hourglass beside the title of a session that is idle (not running, not archived) but
+  still holds `doing::` todo claims: it stopped and is parked, not abandoned (it is not "waiting on Bdon"; that is the next mark). Hover: the claimed todos, up to five.
   Claims come from the todo app's API (`/api/claims`), polled every 60 s; with no Access token configured there are no marks.
+- **Needs you:** a session an agent started that is now waiting on Bdon himself (he steers it through its spawner, so the
+  list has to say it is waiting on him). The row stays where it is, nested under its spawner. A 2px primary edge, his
+  person icon (primary, glowing) where the priority icon goes, the title in strong weight 500, and a second line
+  "Needs you · <reason>" so a phone needn't hover. Every 3s the row's background eases up to a light primary wash and back,
+  the icon's glow in step; off under reduced motion. Set with `--priority needs-bdon [--tier 1|2] --reason "<what>"`.
+  - **Two tiers.** Tier 2 (default, "when I get to it"): the pulse above, no notification. Tier 1 ("get my attention
+    now"): a 1.5s cycle peaking at a 28% wash, a brighter icon glow, a glowing edge, and the second line reads
+    "Needs you now". Under reduced motion neither pulses; tier 1 holds a steady 20% wash so it still reads stronger.
+  - **One push notification, tier 1 only**, goes out on the change into needs-bdon at tier 1 or when a tier 2 mark is raised to
+    tier 1 (not on a re-tag, never for tier 2): title
+    "<session title>: needs you", body the reason, opening that session. The plugin SDK has no notification call, so
+    the server runs `bb push-notifications send ... --thread <id>` (`bb` must be on the server's PATH).
+  - **It clears itself** when Bdon's own next message reaches the session after `since`, or when the session is archived:
+    priority, reason, since and tier are removed from the tags, so `show` agrees with the list. The server checks every 10 s
+    the sessions it knows are marked (seeded from the tags at start, added by `tag`) against their `client/turn/requested`
+    events (`threads.events.list`): a user turn with no sender thread whose text doesn't start with
+    `[bb message from thread:` counts; a message from another agent never does. It runs in the server so it works with no
+    bb window open.
 - **Phase pips:** a session titled `<job> · phase N` shows one small square per phase in the job's colour. Past
   phases are filled, the current one is open and glows. Hover: "<job>: phase N of M". The title shows just the job name.
 - **Subagents:** a pip per subagent of the latest turn, and a dim row per running one.
@@ -38,18 +56,19 @@ All state-derived, nothing from titles except the phase numbers.
 ## CLI
 
 ```bash
-bb session-agents tag [--thread <id>] [--group <name>] [--spawned-by <id>] [--priority urgent|blocking|none] [--reason <text>]
+bb session-agents tag [--thread <id>] [--group <name>] [--spawned-by <id>] [--priority urgent|blocking|needs-bdon|none] [--tier 1|2] [--reason <text>]
 bb session-agents show [--thread <id>]
 ```
 
 - `--thread` defaults to the session running the command. Tagging another session defaults `--spawned-by` to the
   caller, so a lead can tag what it starts: `bb session-agents tag --thread <child> --priority blocking --reason "<why>"`.
-- Only the options you pass change. `--group ""` clears the group, `--priority none` clears priority and reason.
+- Only the options you pass change. `--group ""` clears the group, `--priority none` clears priority, reason and since.
+  `needs-bdon` also stores `tier` (default 2, kept on a re-tag) and `since` (ISO time, set on the change into it); `show` prints them. `--tier` only goes with needs-bdon.
 - Tags are this plugin's thread metadata. The app polls them every 15 s.
 
 ## Checks
 
-`node derive.test.mjs` covers group inheritance, spawner precedence, the header rule, ordering, pips and the waiting rule.
+`node derive.test.mjs` covers group inheritance, spawner precedence, the header rule, ordering, pips, the parked rule and the needs-bdon clearing rule.
 
 ## How the list is ordered
 

@@ -1,6 +1,6 @@
 // Run: node derive.test.mjs
 import assert from "node:assert/strict";
-import { groupOf, spawnerOf, layout, pipsFor, waitingOn, waitingTip } from "./derive.ts";
+import { groupOf, spawnerOf, layout, pipsFor, waitingOn, waitingTip, isBdonMessage, answeredSince, tierPlan } from "./derive.ts";
 
 const threads = {
   h1: { id: "h1", projectId: "p", parentThreadId: null },
@@ -70,8 +70,8 @@ const w = waitingOn(th, [{ thread: "i", text: "Fix a" }, { thread: "i", text: "F
 assert.deepEqual([...w.keys()].sort(), ["i", "u"], "idle and claimed only: not running, archived or unclaimed");
 assert.deepEqual(w.get("i"), ["Fix a", "Fix b"]);
 assert.deepEqual(w.get("u"), ["(untitled todo)"]);
-assert.equal(waitingTip(["a", "b"]), "Waiting on Bdon: a\nb");
-assert.equal(waitingTip(["1", "2", "3", "4", "5", "6", "7"]), "Waiting on Bdon: 1\n2\n3\n4\n5\n+2 more");
+assert.equal(waitingTip(["a", "b"]), "Parked: a\nb");
+assert.equal(waitingTip(["1", "2", "3", "4", "5", "6", "7"]), "Parked: 1\n2\n3\n4\n5\n+2 more");
 console.log("derive: ok");
 
 // families: colour by root, flat descendants in spawn order, dashes
@@ -101,3 +101,37 @@ console.log("derive: ok");
   assert.deepEqual(seq, ["Health", "Beta", "Alpha", "Kid2", "Kid1", "Grand", "Orphan", "C1", "C2", "Zed", "Fromhealth"]);
 }
 console.log("families ok");
+
+// needs-bdon: only Bdon's own message after `since` clears it
+{
+  const turn = (createdAt, text, o = {}) => ({ type: "client/turn/requested", createdAt, data: { initiator: "user", senderThreadId: null, input: [{ type: "text", text }], ...o } });
+  const since = new Date(1000).toISOString();
+  assert.equal(isBdonMessage(turn(2000, "yes do it")), true);
+  assert.equal(isBdonMessage(turn(2000, "[bb message from thread:thr_x] status?")), false, "a relay from another session");
+  assert.equal(isBdonMessage(turn(2000, "  [bb message from thread:thr_x] hi")), false, "leading space");
+  assert.equal(isBdonMessage(turn(2000, "hi", { senderThreadId: "thr_x" })), false, "sender thread set");
+  assert.equal(isBdonMessage(turn(2000, "hi", { initiator: "agent" })), false);
+  assert.equal(isBdonMessage({ type: "turn/started", createdAt: 2000, data: {} }), false);
+  assert.equal(answeredSince([turn(2000, "ok")], since), true);
+  assert.equal(answeredSince([turn(500, "earlier")], since), false, "before since");
+  assert.equal(answeredSince([turn(1000, "same ms")], since), false, "not strictly after");
+  assert.equal(answeredSince([turn(2000, "[bb message from thread:t] x")], since), false);
+  assert.equal(answeredSince([turn(2000, "[bb message from thread:t] x"), turn(3000, "me")], since), true);
+  assert.equal(answeredSince([turn(2000, "ok")], undefined), false, "no since: never clears");
+  assert.equal(answeredSince([turn(2000, "ok")], "garbage"), false);
+  assert.equal(answeredSince([], since), false);
+}
+console.log("needs-bdon ok");
+
+// needs-bdon tiers: default 2, only tier 1 notifies, and only on entering it or rising from 2
+assert.deepEqual(tierPlan(null, undefined), { tier: "2", notify: false }, "default tier 2, silent");
+assert.deepEqual(tierPlan({ priority: "urgent" }, undefined), { tier: "2", notify: false });
+assert.deepEqual(tierPlan(null, "1"), { tier: "1", notify: true }, "entering at tier 1 pushes");
+assert.deepEqual(tierPlan({ priority: "urgent" }, "1"), { tier: "1", notify: true }, "from another priority");
+assert.deepEqual(tierPlan({ priority: "needs-bdon", tier: "2" }, "1"), { tier: "1", notify: true }, "2 -> 1 pushes");
+assert.deepEqual(tierPlan({ priority: "needs-bdon", tier: "1" }, undefined), { tier: "1", notify: false }, "re-tag keeps tier, no push");
+assert.deepEqual(tierPlan({ priority: "needs-bdon", tier: "1" }, "1"), { tier: "1", notify: false }, "same tier, no push");
+assert.deepEqual(tierPlan({ priority: "needs-bdon", tier: "1" }, "2"), { tier: "2", notify: false }, "1 -> 2 is silent");
+assert.deepEqual(tierPlan({ priority: "needs-bdon" }, undefined), { tier: "2", notify: false }, "legacy mark without a tier is 2");
+assert.deepEqual(tierPlan({ priority: "needs-bdon" }, "1"), { tier: "1", notify: true });
+console.log("tiers ok");

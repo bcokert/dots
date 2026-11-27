@@ -118,6 +118,7 @@ loaded from a font CDN: a third-party request on every view, and broken offline.
 | Focus | 2px `--cl-focus` outline, 2px offset, keyboard only (`:focus-visible`) |
 | Disabled | 35% opacity, no pointer |
 | Live (in flight) | its chip tinted and glowing `--cl-live`; where only a mark fits (a card's row), the icon alone lit in `--cl-live` with a soft glow, never a filled box |
+| Needs you (a session list row waiting on Bdon) | a 2px `--cl-primary` edge down the left, no wash at rest (a tint reads as selection); his person icon in `--cl-primary` with a soft glow; title `--cl-text-strong` weight 500; a second line, "Needs you" in `--cl-primary` weight 500 then " · reason" in `--cl-text-subtle` 12px with ellipsis, so it reads without hover. It pulses (see Motion). Two tiers: 2 "when I get to it" is the above; 1 "get my attention now" pulses faster and brighter, the edge glows (`box-shadow` 6px `--cl-primary`), and the line reads "Needs you now". Under reduced motion tier 1 holds a steady 20% `--cl-primary` wash so it still reads stronger |
 | Saving | a status square: `--cl-good` saved, `--cl-wobble` syncing, `--cl-attention` error |
 | Dragging | the item at 30%; the ghost on `--cl-panel-3` with a `--cl-info` edge; a 2px `--cl-info` drop line; drop-into = a `--cl-info` tint with a 1px edge (drag states are the one place an edge appears inside a panel: they last a second) |
 | Error | a toast: `--cl-attention-surface` with a `--cl-attention` edge |
@@ -184,7 +185,10 @@ shows up. **A kind sets only its thresholds**: where each tier above the floor s
 
 - `--cl-fast` (.15s) for state changes, `--cl-move` (.2s, `--cl-ease`) for a zoom or a panel. Zooms scale 1.5% and
   fade.
-- Living tiers (plasma, reality) animate slowly; nothing else moves on its own.
+- Living tiers (plasma, reality) animate slowly; nothing else moves on its own, with one exception: a session waiting
+  on Bdon pulses, ease-in-out, with no flat stretches: tier 2 every 3s (the row's background up to a 16% `--cl-primary`
+  tint and back, the icon's glow 2px to 6px in step), tier 1 every 1.5s up to 28% and glow 6px to 10px. Both stop under
+  reduced motion (tier 1 then holds a steady 20% tint).
 - `prefers-reduced-motion: reduce` turns all of it off.
 
 ## Phone

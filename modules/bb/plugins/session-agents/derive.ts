@@ -1,6 +1,6 @@
 // Session list structure, derived from state: who spawned whom, which group a session is in, in what order the rows go,
 // how deep they nest, and which phase pips to draw. Pure, so it can be tested without bb (derive.test.mjs).
-export type Meta = { group?: string; spawnedBy?: string; priority?: "urgent" | "blocking"; reason?: string };
+export type Meta = { group?: string; spawnedBy?: string; priority?: "urgent" | "blocking" | "needs-bdon"; reason?: string; since?: string; tier?: "1" | "2" };
 export type Thr = { id: string; projectId: string; parentThreadId: string | null; isArchived?: boolean; createdAt?: number };
 export type Ctx = {
   thread: (id: string) => Thr | undefined;
@@ -162,7 +162,7 @@ export type Claim = { thread?: string | null; text?: string | null };
 const RUNNING = new Set(["active", "starting", "pending"]);
 /**
  * Idle sessions (not archived, not running) that still hold todo claims: thread id -> the claimed todos' texts. A
- * session that stopped while holding a claim is parked, waiting on Bdon; one with no claims is just abandoned.
+ * session that stopped while holding a claim is parked; one with no claims is just abandoned.
  */
 export const waitingOn = (threads: readonly { id: string; isArchived?: boolean; status?: string }[], claims: readonly Claim[]): Map<string, string[]> => {
   const by = new Map<string, string[]>();
@@ -180,4 +180,30 @@ export const waitingOn = (threads: readonly { id: string; isArchived?: boolean; 
 
 /** Tooltip: one line per claimed todo, at most `max`, then "+N more". */
 export const waitingTip = (texts: readonly string[], max = 5): string =>
-  `Waiting on Bdon: ${texts.slice(0, max).join("\n")}${texts.length > max ? `\n+${texts.length - max} more` : ""}`;
+  `Parked: ${texts.slice(0, max).join("\n")}${texts.length > max ? `\n+${texts.length - max} more` : ""}`;
+
+/** A client turn as bb logs it (`bb thread log --json`); only the fields the clearing rule reads. */
+export type TurnEvent = { type?: string; createdAt?: number; data?: { initiator?: string; senderThreadId?: string | null; input?: { text?: string }[] } };
+const RELAY = "[bb message from thread:";
+/** A message Bdon wrote himself: a user turn, not from another session, not an agent's relay. */
+export const isBdonMessage = (e: TurnEvent): boolean => {
+  if (e.type !== "client/turn/requested" || e.data?.initiator !== "user" || e.data.senderThreadId) return false;
+  const text = (e.data.input ?? []).map((i) => (typeof i?.text === "string" ? i.text : "")).join("").trimStart();
+  return !text.startsWith(RELAY);
+};
+
+/** Has Bdon himself written to the session after `since` (ISO)? Without a usable `since`, nothing clears it. */
+export const answeredSince = (events: readonly TurnEvent[], since: string | undefined): boolean => {
+  const t = since ? Date.parse(since) : NaN;
+  return Number.isFinite(t) && events.some((e) => typeof e.createdAt === "number" && e.createdAt > t && isBdonMessage(e));
+};
+
+/**
+ * The tier a needs-bdon mark ends up with, and whether that sends the one push: default 2 on entry, kept on a re-tag
+ * unless `--tier` says otherwise; only tier 1 notifies, on entering needs-bdon at tier 1 or on rising from 2 to 1.
+ */
+export const tierPlan = (before: Pick<Meta, "priority" | "tier"> | null | undefined, asked: "1" | "2" | undefined): { tier: "1" | "2"; notify: boolean } => {
+  const was = before?.priority === "needs-bdon" ? (String(before.tier) === "1" ? "1" : "2") : null;
+  const tier = asked ?? was ?? "2";
+  return { tier, notify: tier === "1" && was !== "1" };
+};

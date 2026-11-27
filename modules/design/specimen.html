@@ -191,6 +191,19 @@ a.chip:hover { filter: brightness(1.35); }
 .shapes { display: flex; gap: var(--cl-space-6); flex-wrap: wrap; align-items: flex-end; }
 .shapes > div { display: flex; flex-direction: column; align-items: flex-start; gap: var(--cl-space-3); }
 .goal { position: relative; display: flex; align-items: center; gap: var(--cl-space-6); padding: var(--cl-space-5) var(--cl-space-6) var(--cl-space-5) var(--cl-space-7); border: 1px solid var(--cl-line); border-radius: var(--cl-radius-lg); background: linear-gradient(180deg, color-mix(in srgb, var(--cl-accent) 5%, var(--cl-panel-2)), var(--cl-panel) 70%); }
+.need { position: relative; display: flex; flex-direction: column; justify-content: center; gap: 2px; min-height: 44px; padding: var(--cl-space-3) var(--cl-space-5) var(--cl-space-3) var(--cl-space-6); animation: sa-wait 3s ease-in-out infinite; }
+.need::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--cl-primary); }
+.need .tl { display: flex; align-items: center; gap: var(--cl-space-3); color: var(--cl-text-strong); font-weight: 500; }
+.need .tl .wi { width: 14px; height: 14px; background-color: var(--cl-primary); animation: sa-me 3s ease-in-out infinite; }
+.need .ask { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--cl-text-12); line-height: 16px; color: var(--cl-text-subtle); }
+.need .ask b { font-weight: 500; color: var(--cl-primary); }
+.need.t1 { animation-name: sa-wait1; animation-duration: 1.5s; }
+.need.t1::before { box-shadow: 0 0 6px var(--cl-primary); }
+.need.t1 .tl .wi { animation-name: sa-me1; animation-duration: 1.5s; }
+@keyframes sa-wait1 { 0%, 100% { background-color: transparent; } 50% { background-color: color-mix(in srgb, var(--cl-primary) 28%, transparent); } }
+@keyframes sa-me1 { 0%, 100% { filter: drop-shadow(0 0 6px var(--cl-primary)); } 50% { filter: drop-shadow(0 0 10px var(--cl-primary)); } }
+@keyframes sa-wait { 0%, 100% { background-color: transparent; } 50% { background-color: color-mix(in srgb, var(--cl-primary) 16%, transparent); } }
+@keyframes sa-me { 0%, 100% { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--cl-primary) 50%, transparent)); } 50% { filter: drop-shadow(0 0 6px var(--cl-primary)); } }
 .goal::after { content: ""; position: absolute; left: -1px; top: 12px; bottom: 12px; width: 2px; background: var(--cl-accent); border-radius: var(--cl-radius-sm); }
 .goal .t { font: 600 var(--cl-text-16)/22px var(--cl-font-display); letter-spacing: var(--cl-track-display); text-transform: uppercase; color: var(--cl-accent); }
 
@@ -296,7 +309,7 @@ a.chip:hover { filter: brightness(1.35); }
   .thr th, .thr td { padding-inline: var(--cl-space-2); }
   .thr tbody th div { gap: var(--cl-space-4); font-size: var(--cl-text-10); }
 }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } .need.t1 { background-color: color-mix(in srgb, var(--cl-primary) 20%, transparent); } }
 </style>
 </head>
 <body>
@@ -333,6 +346,9 @@ a.chip:hover { filter: brightness(1.35); }
         <div class="pn" data-accent="violet"><div class="hd">Panel heading</div><div class="bd"><span class="cp">1px --cl-line edge · accent 5% into --cl-panel-2 down to --cl-panel</span></div></div></div>
       <div class="sec"><div class="lb">Goal row · bar down the left edge</div>
         <div class="goal" data-accent="gold"><span class="t">Goal name</span><span class="cp">row of boxes and marks</span></div></div>
+      <div class="sec"><div class="lb">Needs-you rows · a session waiting on Bdon: tier 2 pulses every 3s, tier 1 every 1.5s</div>
+        <div class="need"><span class="tl"><span>Provision pods for Claire</span><i class="wi" data-i="person"></i></span><span class="ask"><b>Needs you</b> · run provision.sh pods</span></div>
+        <div class="need t1" style="margin-top:var(--cl-space-4)"><span class="tl"><span>Pods are down</span><i class="wi" data-i="person"></i></span><span class="ask"><b>Needs you now</b> · approve the restart</span></div></div>
     </div>
   </div></section>
 

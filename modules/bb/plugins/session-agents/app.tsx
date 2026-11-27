@@ -54,8 +54,10 @@ const COG = svg("<circle cx='12' cy='12' r='3.2' stroke-width='2.6'/><path d='M1
 // Health: a pulse line. Priority: a stop octagon (blocking) and a zap (urgent).
 const PULSE = svg("<path d='M2 12h4l3-8 5 16 3-8h5'/>");
 const OCTAGON = svg("<path d='M8 2.5h8L21.5 8v8L16 21.5H8L2.5 16V8z'/><path d='M12 7.5v5.5M12 16.2v.1' stroke-width='2.8'/>");
-// Waiting on Bdon: an hourglass (a parked session still holds todo claims).
+// Parked: an hourglass (an idle session still holds todo claims).
 const HOURGLASS = svg("<path d='M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2'/>");
+// Needs Bdon: his own person icon (a session that an agent started and that now waits on him, not on its spawner).
+const PERSON = svg("<circle cx='12' cy='7.5' r='4'/><path d='M4 21c0-4.6 3.6-7.5 8-7.5s8 2.9 8 7.5'/>");
 const ZAP = svg("<path d='M13 2.5 4.5 13.5H12l-1 8 8.5-11H12z'/>");
 
 const ACCENTS = ["teal", "cyan", "blue", "violet", "magenta", "gold", "slate"];
@@ -136,6 +138,27 @@ li.sa-subs { margin: -6px 0 6px 25px; list-style: none; }
   -webkit-mask: var(--sa-prio-icon) center / contain no-repeat; mask: var(--sa-prio-icon) center / contain no-repeat; }
 .sa-wait { width: 13px; height: 13px; flex: none; margin-left: 6px; align-self: center; pointer-events: auto; background-color: var(--muted-foreground, gray);
   -webkit-mask: ${HOURGLASS} center / contain no-repeat; mask: ${HOURGLASS} center / contain no-repeat; }
+/* Needs Bdon: a 2px primary edge (no wash at rest: a tint would read as selection), his person icon lit and glowing,
+   and the ask on a second line (phones have no hover). Every 3s the row eases up to a light wash and back; the glow
+   pulses in step. Off under reduced motion. */
+[data-sa-you] { position: relative; height: auto !important; min-height: calc(var(--bb-sidebar-row-height, 28px) + 16px); padding-bottom: 16px; box-sizing: border-box; animation: sa-wait 3s ease-in-out infinite; }
+[data-sa-you] .bb-thread-title { color: var(--cl-text-strong, var(--foreground)); font-weight: 500; }
+.sa-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--cl-primary, var(--primary, dodgerblue)); pointer-events: none; }
+.sa-ask { position: absolute; right: 8px; bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--cl-text-12, 12px); line-height: 16px;
+  color: var(--cl-text-subtle, var(--muted-foreground, gray)); pointer-events: none; }
+.sa-ask b { font-weight: 500; color: var(--cl-primary, var(--primary, dodgerblue)); }
+.sa-me { width: 14px; height: 14px; flex: none; margin-left: 6px; align-self: center; pointer-events: auto; background-color: var(--cl-primary, var(--primary, dodgerblue));
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cl-primary, var(--primary, dodgerblue)) 70%, transparent)); animation: sa-me 3s ease-in-out infinite;
+  -webkit-mask: ${PERSON} center / contain no-repeat; mask: ${PERSON} center / contain no-repeat; }
+@keyframes sa-wait { 0%, 100% { background-color: transparent; } 50% { background-color: color-mix(in srgb, var(--cl-primary, var(--primary, dodgerblue)) 16%, transparent); } }
+@keyframes sa-me { 0%, 100% { filter: drop-shadow(0 0 2px color-mix(in srgb, var(--cl-primary, var(--primary, dodgerblue)) 50%, transparent)); } 50% { filter: drop-shadow(0 0 6px var(--cl-primary, var(--primary, dodgerblue))); } }
+/* Tier 1 (get my attention now): twice as often, brighter, and the edge glows. */
+[data-sa-you="1"] { animation-name: sa-wait1; animation-duration: 1.5s; }
+[data-sa-you="1"] .sa-me { animation-name: sa-me1; animation-duration: 1.5s; }
+[data-sa-you="1"] .sa-bar { box-shadow: 0 0 6px var(--cl-primary, var(--primary, dodgerblue)); }
+@keyframes sa-wait1 { 0%, 100% { background-color: transparent; } 50% { background-color: color-mix(in srgb, var(--cl-primary, var(--primary, dodgerblue)) 28%, transparent); } }
+@keyframes sa-me1 { 0%, 100% { filter: drop-shadow(0 0 6px var(--cl-primary, var(--primary, dodgerblue))); } 50% { filter: drop-shadow(0 0 10px var(--cl-primary, var(--primary, dodgerblue))); } }
+@media (prefers-reduced-motion: reduce) { [data-sa-you], [data-sa-you] .sa-me, .sa-me { animation: none; } [data-sa-you="1"] { background-color: color-mix(in srgb, var(--cl-primary, var(--primary, dodgerblue)) 20%, transparent); } }
 [data-sa-prio="blocking"] .sa-prio { --sa-prio-icon: ${OCTAGON}; }
 [data-sa-prio="urgent"] .sa-prio { --sa-prio-icon: ${ZAP}; }
 /* Phased titles show only the job name: the original text is zeroed and the short one is drawn from the attribute, so
@@ -516,6 +539,26 @@ function SessionAgents() {
           el.setAttribute("aria-label", tip);
           (titleEl.parentElement!.querySelector(":scope > .sa-phase") ?? titleEl).after(el);
         }
+        // Needs Bdon: edge, person icon, second line. Cleared by the server (server.ts), so this only draws what is tagged.
+        const you = m?.priority === "needs-bdon";
+        for (const el of row.querySelectorAll(":scope .sa-me, :scope .sa-bar, :scope .sa-ask")) el.remove();
+        if (you && titleEl) {
+          const tier = m?.tier === "1" || String(m?.tier) === "1" ? "1" : "2";
+          row.dataset.saYou = tier;
+          const why = m?.reason?.trim();
+          const now = tier === "1";
+          const label = now ? "Needs you now" : "Needs you";
+          const tip = why ? `${label}: ${why}` : label;
+          const me = Object.assign(document.createElement("span"), { className: "sa-me", title: tip });
+          me.setAttribute("aria-label", tip);
+          (titleEl.parentElement!.querySelector(":scope > .sa-phase") ?? titleEl).after(me);
+          const ask = document.createElement("span");
+          ask.className = "sa-ask";
+          ask.append(Object.assign(document.createElement("b"), { textContent: label }), why ? ` \u00b7 ${why}` : "");
+          ask.title = tip;
+          ask.style.left = `${Math.max(0, Math.round(titleEl.getBoundingClientRect().left - row.getBoundingClientRect().left))}px`;
+          row.append(Object.assign(document.createElement("span"), { className: "sa-bar" }), ask);
+        } else delete row.dataset.saYou;
         row.querySelector(":scope .sa-wait")?.remove();
         const t = roles.current.get(id);
         const waiting = t ? waitingOn([t], claims.current).get(id) : undefined;
@@ -702,7 +745,8 @@ function SessionAgents() {
       clearInterval(subTimer);
       document.removeEventListener("pointerover", hover);
       document.removeEventListener("pointerleave", hover, true);
-      for (const el of document.querySelectorAll(".sa-pips, [data-sa-block], .sa-phase, .sa-prio, .sa-wait, .sa-spawn")) el.remove();
+      for (const el of document.querySelectorAll(".sa-pips, [data-sa-block], .sa-phase, .sa-prio, .sa-wait, .sa-spawn, .sa-me, .sa-bar, .sa-ask")) el.remove();
+      for (const el of document.querySelectorAll<HTMLElement>("[data-sa-you]")) delete el.dataset.saYou;
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-order], [data-sa-gh], [data-sa-depth]")) clearItem(el);
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-section]")) delete el.dataset.saSection;
       for (const el of document.querySelectorAll<HTMLElement>("[data-sa-prio]")) delete el.dataset.saPrio;
