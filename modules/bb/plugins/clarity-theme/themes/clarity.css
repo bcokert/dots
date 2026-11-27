@@ -391,8 +391,8 @@
 /* who wrote it: a small vertical name set into the top of the turn's bar, the bar broken around it (Bdon
    2026-11-26). Absolute, so nothing moves. A small caps label (Bdon's pick). A box is at least as tall as its name
    (--cl-who-min), so only a one-line turn grows, a few px, and no name is cut. bb's collapsed rows already name
-   their sender, so they get none. 4px either side of the bar: the right one sits 4px in from the row's edge,
-   since a phone clips each row at its box */
+   their sender, so they get none. inside the box, 4px in from the right bar and flush in the left box's padding
+   (see below), since a phone clips each row at its box */
 [data-timeline-row-id*=":user"] [data-message-column] div:has(> [data-image-gallery-clipped]),
 [data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable] { position: relative; box-sizing: border-box; min-height: var(--cl-who-min, 40px); }
 [data-timeline-row-id*=":user"] [data-message-column] div:has(> [data-image-gallery-clipped])::after,
@@ -400,7 +400,7 @@
   content: var(--cl-who, "Bdon");
   position: absolute;
   top: 0;
-  left: -5px;
+  left: 0;
   writing-mode: vertical-rl;
   padding: var(--cl-space-1) 0 var(--cl-space-2);
   font: 600 var(--cl-text-10)/8px var(--cl-font-display);
@@ -417,7 +417,10 @@
   color: var(--cl-them-edge);
   background: var(--cl-them-solid);
 }
-[data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable]::after { left: auto; right: -3px; }
+[data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable]::after { left: auto; right: var(--cl-space-2); }
+/* the name sits inside its box, never past it: a phone clips each row at its box, so a label hung outside lost its
+   first letter. The right-hand box gets 12px of padding for it (the bar's own 2px edge and 4px in), the left one has 12px already */
+[data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable] { padding-right: var(--cl-space-5); }
 /* a name's length in 10px caps, plus its 6px of padding: 4 letters fit 40px, 6 fit 48px */
 [data-sa-from="claire"] { --cl-who: "Claire"; --cl-who-min: 48px; }
 [data-sa-from="personal-host"] { --cl-who: "Host"; }
