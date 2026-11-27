@@ -373,8 +373,8 @@
   background: var(--cl-them-wash);
   box-shadow: inset -2px 0 0 var(--cl-them-edge);
   border-radius: var(--cl-radius-lg) 0 0 var(--cl-radius-lg);
-  padding: var(--cl-space-3) var(--cl-space-4);
-  margin: calc(-1 * var(--cl-space-3)) calc(-1 * var(--cl-space-4));
+  padding: var(--cl-space-3) var(--cl-space-2) var(--cl-space-3) var(--cl-space-4);
+  margin: calc(-1 * var(--cl-space-3)) calc(-1 * var(--cl-space-2)) calc(-1 * var(--cl-space-3)) calc(-1 * var(--cl-space-4));
 }
 /* a spawned session's first prompt: Bdon's box, the spawner's hue */
 [data-timeline-row-id*=":user"][data-sa-from] [data-message-column] div:has(> [data-image-gallery-clipped]) {
@@ -387,3 +387,40 @@
   box-shadow: inset 2px 0 0 var(--cl-them-edge);
   border-radius: 0 var(--cl-radius-lg) var(--cl-radius-lg) 0;
 }
+
+/* who wrote it: a small vertical name set into the top of the turn's bar, the bar broken around it (Bdon
+   2026-11-26). Absolute, so nothing moves. A small caps label (Bdon's pick). A box is at least as tall as its name
+   (--cl-who-min), so only a one-line turn grows, a few px, and no name is cut. bb's collapsed rows already name
+   their sender, so they get none. 4px either side of the bar: the right one sits 4px in from the row's edge,
+   since a phone clips each row at its box */
+[data-timeline-row-id*=":user"] [data-message-column] div:has(> [data-image-gallery-clipped]),
+[data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable] { position: relative; box-sizing: border-box; min-height: var(--cl-who-min, 40px); }
+[data-timeline-row-id*=":user"] [data-message-column] div:has(> [data-image-gallery-clipped])::after,
+[data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable]::after {
+  content: var(--cl-who, "Bdon");
+  position: absolute;
+  top: 0;
+  left: -5px;
+  writing-mode: vertical-rl;
+  padding: var(--cl-space-1) 0 var(--cl-space-2);
+  font: 600 var(--cl-text-10)/8px var(--cl-font-display);
+  letter-spacing: var(--cl-track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--cl-you-edge);
+  background: color-mix(in srgb, var(--cl-primary) 12%, var(--cl-bg));
+  pointer-events: none;
+}
+[data-sa-from] { --cl-them-solid: color-mix(in srgb, var(--cl-them) var(--cl-agent-wash), var(--cl-bg)); }
+[data-timeline-row-id*=":user"][data-sa-from] [data-message-column] div:has(> [data-image-gallery-clipped])::after,
+[data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable]::after {
+  color: var(--cl-them-edge);
+  background: var(--cl-them-solid);
+}
+[data-timeline-row-id*=":assistant:"][data-sa-from] [data-message-column] > [data-sidebar-swipe-selectable]::after { left: auto; right: -3px; }
+/* a name's length in 10px caps, plus its 6px of padding: 4 letters fit 40px, 6 fit 48px */
+[data-sa-from="claire"] { --cl-who: "Claire"; --cl-who-min: 48px; }
+[data-sa-from="personal-host"] { --cl-who: "Host"; }
+[data-sa-from="personal"] { --cl-who: "Pod"; }
+[data-sa-from="work"] { --cl-who: "Work"; }
+[data-sa-from="work-host"] { --cl-who: "Host"; }

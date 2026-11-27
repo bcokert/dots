@@ -52,7 +52,7 @@ dashboard gets fixed.
 | `--cl-today` (white) | today's cell, unmarked | a control |
 | `--cl-rank-lo` → `--cl-rank-hi` | a 0-10 rank, deep blue to bright cyan | red, ever: low means still learning |
 | `--cl-you` / `--cl-you-edge` (blue) | Bdon's own turn in a chat: a 12% `--cl-primary` wash with a 2px left edge. Not selection: selection is an 18% tint with no edge, on a row you can pick; this is a turn you read | anything but his own messages |
-| `--cl-agent-claire` / `-personal` / `-work` | whose turn it is in a chat, for an agent: Claire pink-magenta, Bdon's personal login (pods and Host agent) teal, the work login violet. A 6% wash (`--cl-agent-wash`) and a 2px edge at 75%: the session's own agent on the right, an agent talking to it on the left, like Bdon's | icons, chips, rows, anything outside a chat turn |
+| `--cl-agent-claire` / `-personal` / `-work` | whose turn it is in a chat, for an agent: Claire pink-magenta, Bdon's personal login (pods and Host agent) teal, the work login violet. A 6% wash (`--cl-agent-wash`) and a 2px edge at 75%: the session's own agent on the right, an agent talking to it on the left, like Bdon's. Every turn's bar carries its writer's name (Bdon, Claire, Host, Pod, Work; the hue says whose login): a 10px small caps label, set vertically into the top of the bar, which breaks around it. A box is at least as tall as its name, so one-line turns grow a few px | icons, chips, rows, anything outside a chat turn |
 
 - **Accents** belong to a goal (or a checkin group) and colour only its edge bar, its title and its heading square:
   teal, cyan, blue, violet, magenta, gold, slate. They never mean anything. Set one with `data-accent`; everything
