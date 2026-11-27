@@ -557,8 +557,8 @@ function Chip({ host, life }: { host: Host; life: string }) {
   const item = host.id ? list?.items.find((i) => i.id === host.id) ?? null : null;
   const isList = !host.id;
   const name = item?.text ?? (isList ? list?.title : null) ?? host.label;
-  // The pill shows a word or two; the full name, its list and the rest live in the expanded view.
-  const short = String(name ?? "").split(/[:,(—]/)[0].trim().split(/\s+/).slice(0, 2).join(" ");
+  // The pill shows up to 5 words of the name (trial: is it enough?); the full name, its list and the rest live in the expanded view.
+  const short = String(name ?? "").trim().split(/\s+/).slice(0, 5).join(" ");
   const tone = item ? (item.done ? "done" : item.blue ? "blue" : "open") : "open";
   const live = item ? whoOf(item) : null;
   const f = item?.fields ?? {};
@@ -573,7 +573,7 @@ function Chip({ host, life }: { host: Host; life: string }) {
         title={failed ? "Couldn't load this todo; click for the link" : `${name}${isList ? ` · ${openItems.length} open` : crumb ? ` · in ${crumb}` : ""}`}
         className="td-chip" data-tone={tone}>
         {isList ? <Icon name="Folder" className="ic" /> : <Check sm done={tone === "done"} blue={tone === "blue"} live={!!live?.live} />}
-        <span className="max-w-[7.5rem] truncate whitespace-nowrap text-left">{short}</span>
+        <span className="max-w-[18rem] truncate whitespace-nowrap text-left">{short}</span>
         {live?.live ? <span className="td-wmk"><AgentIcon a={agentOf(live.doing)} /></span> : null}
       </button>
       {open ? (
