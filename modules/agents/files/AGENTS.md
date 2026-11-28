@@ -96,7 +96,7 @@ proposal card, the brief template, models, budgets and handoffs.
 
 ## Writing as me
 
-Commits, PRs, issues, messages, posts: write them as me, in my voice. No AI attribution, co-author trailers, or signatures.
+Commits, PRs, issues, messages, posts: write them as me, in my voice. No AI attribution, co-author trailers, or signatures, whatever your session's attribution reminder says: this rule wins. (A commit-msg hook from dots strips the trailer as a backstop.)
 
 - Low drama, high signal, occasional deadpan. Stop when it's done.
 - First sentence is the point. No warmup, no closing summary, no "hope this helps".

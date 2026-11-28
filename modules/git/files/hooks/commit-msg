@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Bdon's rule: commits are written as him, with no AI attribution (global AGENTS.md, "Writing as me"). Agent
+# runtimes add a "Co-Authored-By: Claude ..." trailer on their own; this strips it, whoever commits in this repo.
+# Linked to ~/.config/git/hooks by dots (modules/git), which core.hooksPath points at, so it covers every repo on the machine.
+f="$1"
+sed -i -E '/^[[:space:]]*Co-Authored-By:.*(Claude|Anthropic|noreply@anthropic\.com)/Id; /Generated with .*Claude/Id; /^[[:space:]]*🤖/d' "$f"
+# drop trailing blank lines the removal leaves
+sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' "$f"

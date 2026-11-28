@@ -3,6 +3,7 @@
 pkg git
 link config "$HOME/.config/git/config"
 link ignore "$HOME/.config/git/ignore"
+link hooks/commit-msg "$HOME/.config/git/hooks/commit-msg"
 
 if [[ -L "$HOME/.gitconfig" ]]; then
   mv "$HOME/.gitconfig" "$HOME/.gitconfig.bak.$(date +%Y%m%d-%H%M%S)"

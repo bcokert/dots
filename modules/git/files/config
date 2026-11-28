@@ -17,6 +17,8 @@
   defaultBranch = main
 
 [core]
+  # Commit hooks shared by every repo (modules/git/files/hooks): commit-msg strips AI attribution trailers
+  hooksPath = ~/.config/git/hooks
   # Flag spaces before tabs and trailing whitespace
   whitespace = space-before-tab,-indent-with-non-tab,trailing-space
 
